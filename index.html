@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HouseCalls V33 Voice + Online + Typing</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<style>body{background:#FFF2F5}</style>
+</head>
+<body class="bg-[#FFF2F5]">
+<header class="bg-white p-4 flex justify-between items-center sticky top-0 z-40 shadow">
+<div class="font-black">HouseCalls<span class="text-pink-600">.com</span></div>
+<div class="flex gap-1">
+<button onclick="openChatList()" class="bg-pink-600 text-white px-3 py-2 rounded-full text-xs font-bold">💬 Chats</button>
+<button onclick="openAdmin()" class="bg-black text-white px-3 py-2 rounded-full text-xs font-bold">ADMIN</button>
+<button id="loginBtn" onclick="openLogin()" class="bg-black text-white px-3 py-2 rounded-full text-xs font-bold">Sign In</button>
+</div>
+</header>
+<div id="userBar" class="hidden p-2 text-center text-xs font-bold bg-green-600 text-white"></div>
+<main class="max-w-xl mx-auto p-4 pb-24">
+<div id="homePage">
+<div class="text-center mt-4"><h1 class="text-3xl font-black">Beauty Comes</h1><h1 class="text-3xl font-black text-pink-600">To Your Door</h1><p class="text-[10px]">V33: Voice 🎤 + Typing ⌨️ + Online 🟢 + Mutual</p></div>
+<div class="grid grid-cols-2 gap-3 mt-4">
+<div onclick="goTech()" class="bg-black text-white p-5 rounded-[1.5rem] text-center"><div class="text-2xl">💅</div><div class="font-black text-sm">I'm a Tech</div><div class="text-[9px] opacity-60">Tech only</div></div>
+<div onclick="goClient()" class="bg-pink-600 text-white p-5 rounded-[1.5rem] text-center"><div class="text-2xl">👩</div><div class="font-black text-sm">I'm a Client</div><div class="text-[9px] opacity-60">Client only</div></div>
+</div>
+<h2 class="font-bold mt-6 text-sm">💅 Techs (<span id="techCount">0</span>)</h2><div id="techs" class="mt-2 space-y-2"></div>
+<h2 class="font-bold mt-6 text-sm">👩 Clients (<span id="clientCount">0</span>)</h2><div id="clients" class="mt-2 space-y-2"></div>
+<div class="mt-6 bg-white p-4 rounded-[1.5rem] shadow"><h2 class="font-bold text-sm">⭐ Reviews</h2><div id="reviewsList" class="mt-2 text-xs"></div></div>
+</div>
+<div id="techPage" class="hidden bg-white p-5 rounded-[1.5rem] shadow mt-4"><div onclick="goHome()" class="text-sm">← Home</div><h2 class="font-black text-lg mt-2">💅 Tech Dashboard (Tech Only)</h2><div class="mt-4 space-y-2"><input id="tName" placeholder="Full Name" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tPhone" placeholder="Phone" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tID" placeholder="ID" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tService" placeholder="Service" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tPrice" placeholder="Price KES" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tEstate" placeholder="Estate" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tExp" placeholder="Experience" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><button onclick="saveTech()" class="w-full bg-black text-white py-3 rounded-xl font-bold text-sm">Create Tech Profile</button><p id="techMsg" class="text-xs text-center"></p></div></div>
+<div id="clientPage" class="hidden bg-white p-5 rounded-[1.5rem] shadow mt-4"><div onclick="goHome()" class="text-sm">← Home</div><h2 class="font-black text-lg mt-2">👩 Client Dashboard (Client Only)</h2><div class="mt-4 space-y-2"><input id="cName" placeholder="Your Name" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="cPhone" placeholder="Phone" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="cEstateExact" placeholder="Estate" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="cArea" placeholder="Area" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><button onclick="saveClient()" class="w-full bg-pink-600 text-white py-3 rounded-xl font-bold text-sm">Create Client Profile</button><p id="clientMsg" class="text-xs text-center"></p></div></div>
+</main>
+<div id="loginModal" class="hidden fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4"><div class="bg-white w-full max-w-sm rounded-[1.5rem] p-5"><h2 class="font-black text-lg">Sign In - Choose Role</h2><input id="email" placeholder="email@gmail.com" class="w-full mt-3 p-3 rounded-xl bg-zinc-100 text-sm"><input id="password" type="password" placeholder="Password" class="w-full mt-2 p-3 rounded-xl bg-zinc-100 text-sm"><select id="role" class="w-full mt-2 p-3 rounded-xl bg-zinc-100 text-sm"><option value="client">I am Client</option><option value="tech">I am Tech</option></select><button onclick="doSignUp()" class="w-full bg-pink-600 text-white py-3 rounded-xl font-bold mt-3 text-sm">Create Account</button><button onclick="doSignIn()" class="w-full bg-black text-white py-3 rounded-xl font-bold mt-2 text-sm">Sign In</button><p id="error" class="text-xs text-red-600 mt-2 text-center"></p><button onclick="closeLogin()" class="w-full mt-3 text-xs">Close</button></div></div>
+<div id="adminModal" class="hidden fixed inset-0 bg-[#FFF2F5] z-[999] overflow-auto p-4"><div class="bg-white max-w-xl mx-auto p-5 rounded-[1.5rem] shadow mt-10"><div class="flex justify-between"><h2 class="font-black text-sm">🔒 ADMIN</h2><button onclick="closeAdmin()" class="bg-black text-white px-3 py-1 rounded-full text-xs">Close</button></div><div class="mt-4 bg-yellow-100 p-3 rounded-xl"><b class="text-xs">Pending Techs:</b><div id="pendingTechs" class="mt-1 text-xs"></div></div><div class="mt-4"><b class="text-xs">All Techs:</b><div id="allTechsAdmin" class="mt-1 space-y-1"></div></div><div class="mt-4"><b class="text-xs">All Clients:</b><div id="allClientsAdmin" class="mt-1 text-xs"></div></div><div class="mt-4"><b class="text-xs">All Chats - Mutual:</b><div id="adminBookings" class="mt-2 space-y-1"></div></div><div class="mt-4 flex gap-2"><button onclick="goHome();closeAdmin()" class="bg-black text-white px-4 py-2 rounded-full text-xs">Back</button><button onclick="clearAllChats()" class="bg-red-100 text-red-600 px-4 py-2 rounded-full text-xs">Clear Spam</button></div></div></div>
+<div id="chatListModal" class="hidden fixed inset-0 bg-white z-[998] flex flex-col"><div class="bg-black text-white p-3"><div class="flex justify-between"><b class="text-sm">💬 Mutual Chats</b><button onclick="closeChatList()" class="bg-white text-black px-3 py-1 rounded-full text-xs">Close</button></div><div class="text-[9px] opacity-60">Online 🟢 + Voice 🎤 + Typing ⌨️ - Both see</div></div><div class="flex gap-1 p-2 bg-zinc-100"><button onclick="filterChat('all')" id="fAll" class="bg-black text-white px-2 py-1 rounded-full text-[11px]">All</button><button onclick="filterChat('tech')" id="fTech" class="bg-white px-2 py-1 rounded-full text-[11px]">Techs</button><button onclick="filterChat('client')" id="fClient" class="bg-white px-2 py-1 rounded-full text-[11px]">Clients</button><button onclick="filterChat('admin')" id="fAdmin" class="bg-white px-2 py-1 rounded-full text-[11px]">Admin</button></div><div id="chatList" class="flex-1 overflow-auto p-3 space-y-2 bg-[#FFF2F5]"></div></div>
+  <div id="chatRoomModal" class="hidden fixed inset-0 bg-white z-[1000] flex flex-col">
+<div class="bg-pink-600 text-white p-3 flex justify-between">
+<div>
+<b id="chatRoomName" class="text-sm">Private Chat</b>
+<div id="chatRoomSub" class="text-[10px] opacity-80">🔒 Mutual • <span id="onlineStatus">● Offline</span> • <span id="typingStatus" class="hidden italic">typing...</span></div>
+</div>
+<button onclick="closeChatRoom()" class="bg-white text-pink-600 px-3 py-1 rounded-full text-xs">Back</button>
+</div>
+<div id="chatMessages" class="flex-1 overflow-auto p-3 space-y-2 bg-[#FFF2F5]"></div>
+<div class="p-2 border-t bg-white">
+<div class="flex gap-2 items-center">
+<input id="chatInput" oninput="onTyping()" placeholder="Type - both see..." class="flex-1 p-3 rounded-xl bg-zinc-100 text-sm">
+<button id="voiceBtn" onclick="toggleVoice()" class="bg-zinc-200 px-3 py-3 rounded-full text-sm">🎤</button>
+<button onclick="sendMessage()" class="bg-black text-white px-4 py-3 rounded-xl text-sm">Send</button>
+</div>
+<div id="voiceStatus" class="hidden text-[10px] text-red-600 mt-1 text-center">🔴 Recording... Tap 🎤 to stop and send voice note</div>
+</div>
+</div>
+<div id="reviewModal" class="hidden fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4"><div class="bg-white w-full max-w-sm rounded-[1.5rem] p-5"><h2 class="font-bold text-sm">⭐ Review <span id="reviewName"></span></h2><div class="flex gap-1 mt-2 text-2xl"><span onclick="setStars(1)" id="s1">☆</span><span onclick="setStars(2)" id="s2">☆</span><span onclick="setStars(3)" id="s3">☆</span><span onclick="setStars(4)" id="s4">☆</span><span onclick="setStars(5)" id="s5">☆</span></div><textarea id="reviewText" placeholder="Write review..." class="w-full mt-3 p-3 rounded-xl bg-zinc-100 h-16 text-sm"></textarea><button onclick="submitReview()" class="w-full bg-black text-white py-3 rounded-xl font-bold mt-3 text-sm">Post Review</button><button onclick="closeReview()" class="w-full mt-2 text-xs">Cancel</button></div></div>
+<script>
+const firebaseConfig={apiKey:"AIzaSyD5HtYXW1tdYcABGqpG_ZLJNidij_QSfOw",authDomain:"house-calls-eldoret.firebaseapp.com",projectId:"house-calls-eldoret",storageBucket:"house-calls-eldoret.firebasestorage.app",messagingSenderId:"952901879825",appId:"1:952901879825:web:c6faa910449dd7347789b0"};
+firebase.initializeApp(firebaseConfig);const db=firebase.firestore(),auth=firebase.auth();
+let curStars=0,curReviewUid="",curChatTarget=null,chatUnsub=null,typingUnsub=null,presenceUnsub=null,currentFilter="all",allProfiles=[],isAdmin=false,myRole=null;
+let mediaRecorder=null,audioChunks=[],isRecording=false;
+const ADMIN_UID="ADMIN_OWNER",ADMIN_NAME="Admin (Owner)",ADMIN_PASS="EldoretAdmin2026!";
+function openLogin(){loginModal.classList.remove('hidden')}function closeLogin(){loginModal.classList.add('hidden')}
+function openAdmin(){let p=prompt("Owner Pass:");if(p===ADMIN_PASS){isAdmin=true;adminModal.classList.remove('hidden');loadAdmin()}else if(p!==null)alert("Wrong!")}
+function closeAdmin(){adminModal.classList.add('hidden')}
+function goHome(){homePage.classList.remove('hidden');techPage.classList.add('hidden');clientPage.classList.add('hidden')}
+async function goTech(){if(!auth.currentUser){openLogin();return}let snap=await db.collection("users").doc(auth.currentUser.uid).get();myRole=snap.exists?snap.data().role:null;if(myRole==="client"){alert("⛔ CLIENT cannot access Tech dashboard");return}homePage.classList.add('hidden');techPage.classList.remove('hidden')}
+async function goClient(){if(!auth.currentUser){openLogin();return}let snap=await db.collection("users").doc(auth.currentUser.uid).get();myRole=snap.exists?snap.data().role:null;if(myRole==="tech"){alert("⛔ TECH cannot access Client dashboard");return}homePage.classList.add('hidden');clientPage.classList.remove('hidden')}
+function openReview(u,n){curReviewUid=u;reviewName.innerText=n;setStars(0);reviewModal.classList.remove('hidden')}
+function closeReview(){reviewModal.classList.add('hidden')}
+function setStars(n){curStars=n;for(let i=1;i<=5;i++)document.getElementById('s'+i).innerText=i<=n?"★":"☆"}
+function submitReview(){if(!curStars){alert("Pick stars");return}db.collection("reviews").add({techUid:curReviewUid,techName:reviewName.innerText,clientUid:auth.currentUser?auth.currentUser.uid:ADMIN_UID,clientEmail:auth.currentUser?auth.currentUser.email:"Admin",stars:curStars,text:reviewText.value,created:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>{closeReview();loadReviews()})}
+function doSignUp(){let e=email.value.trim(),p=password.value,r=role.value,err=error;if(!e.includes("@")||p.length<6){err.innerText="Valid email+6";return}auth.createUserWithEmailAndPassword(e,p).then(c=>{return db.collection("users").doc(c.user.uid).set({email:e,role:r,ticket:"HC-2026-"+Math.floor(1000+Math.random()*9000),created:new Date()})}).then(()=>{err.innerText="✅ Created as "+role.value.toUpperCase()+"! Sign In";err.style.color="green"}).catch(ex=>err.innerText=ex.message)}
+function doSignIn(){let e=email.value.trim(),p=password.value,err=error;err.innerText="Signing...";auth.signInWithEmailAndPassword(e,p).then(()=>{closeLogin();updateUI()}).catch(ex=>err.innerText=ex.message)}
+async function saveTech(){let n=tName.value.trim(),ph=tPhone.value.trim();if(!n||!ph){techMsg.innerText="Name+Phone";return}let uid=auth.currentUser.uid;let snap=await db.collection("users").doc(uid).get();if(snap.exists&&snap.data().role==="client"){techMsg.innerText="⛔ CLIENT cannot create Tech";return}db.collection("users").doc(uid).get().then(d=>{let u=d.data()||{};return db.collection("profiles").doc(uid).set({uid,name:n,phone:ph,idNumber:tID.value,service:tService.value,price:tPrice.value,area:tEstate.value,estate:tEstate.value,experience:tExp.value,role:"tech",email:u.email||auth.currentUser.email,ticket:u.ticket||"HC",verified:false,online:true,lastSeen:firebase.firestore.FieldValue.serverTimestamp(),created:new Date()})}).then(()=>{techMsg.innerText="✅ Sent";setTimeout(goHome,1000)})}
+async function saveClient(){let n=cName.value.trim(),ph=cPhone.value.trim();if(!n||!ph){clientMsg.innerText="Name+Phone";return}let uid=auth.currentUser.uid;let snap=await db.collection("users").doc(uid).get();if(snap.exists&&snap.data().role==="tech"){clientMsg.innerText="⛔ TECH cannot create Client";return}db.collection("users").doc(uid).get().then(d=>{let u=d.data()||{};return db.collection("profiles").doc(uid).set({uid,name:n,phone:ph,estate:cEstateExact.value,area:cArea.value,role:"client",email:u.email||auth.currentUser.email,ticket:u.ticket||"HC",verified:true,online:true,lastSeen:firebase.firestore.FieldValue.serverTimestamp(),created:new Date()})}).then(()=>{clientMsg.innerText="✅ Created";setTimeout(goHome,1000)})}
+function updateUI(){let u=auth.currentUser;if(u){userBar.classList.remove('hidden');db.collection("users").doc(u.uid).get().then(doc=>{myRole=doc.exists?doc.data().role:"unknown";userBar.innerHTML=`✓ ${u.email} | ${myRole.toUpperCase()} | 🟢 Online | <span onclick="auth.signOut().then(()=>location.reload())" style="text-decoration:underline">Logout</span>`;setOnline(u.uid)});loginBtn.innerText="Account"}else{userBar.classList.add('hidden');loginBtn.innerText="Sign In";myRole=null}loadProfiles();loadReviews()}
+function setOnline(uid){if(!uid)return;db.collection("presence").doc(uid).set({online:true,lastSeen:firebase.firestore.FieldValue.serverTimestamp(),name:auth.currentUser?auth.currentUser.email:ADMIN_NAME},{merge:true})}
+function loadProfiles(){db.collection("profiles").onSnapshot(s=>{let t="",c="",tc=0,cc=0,list=[];list.push({id:ADMIN_UID,name:ADMIN_NAME,role:"admin",area:"Owner",phone:"Admin",verified:true,online:true});s.forEach(doc=>{let p={id:doc.id,...doc.data()};list.push(p);let isMe=auth.currentUser&&doc.id===auth.currentUser.uid;if(p.role==="tech"){if(p.verified){tc++;t+=`<div class="bg-white p-3 rounded-xl shadow border text-sm"><b>${p.name}</b> <span class="text-[10px] bg-green-100 px-1 rounded-full">LIVE</span> <span class="text-[9px]">${p.online?'🟢 Online':'⚫ Offline'}</span><div class="text-xs">${p.service} • ${p.price}</div><div class="flex gap-1 mt-1"><button onclick="startChat('${doc.id}','${p.name}')" class="bg-black text-white px-3 py-1 rounded-full text-[11px]">💬 Chat</button><button onclick="openReview('${doc.id}','${p.name}')" class="bg-yellow-100 px-2 py-1 rounded-full text-[11px]">⭐ Review</button></div></div>`}}else if(p.role==="client"){cc++;c+=`<div class="bg-white p-3 rounded-xl shadow border text-sm"><b>${p.name}</b> ${isMe?'(YOU)':''} <span class="text-[9px]">${p.online?'🟢 Online':'⚫ Offline'}</span><div class="text-xs">${p.area} • ${p.phone}</div><button onclick="startChat('${doc.id}','${p.name}')" class="mt-1 bg-pink-600 text-white px-3 py-1 rounded-full text-[11px]">💬 Chat</button></div>`}});allProfiles=list;techs.innerHTML=t||"<div class='bg-white p-3 rounded-xl text-xs'>No techs</div>";clients.innerHTML=c||"<div class='bg-white p-3 rounded-xl text-xs'>No clients</div>";techCount.innerText=tc;clientCount.innerText=cc})}
+function loadReviews(){db.collection("reviews").orderBy("created","desc").limit(20).onSnapshot(s=>{let h="";s.forEach(d=>{let r=d.data();h+=`<div class="border-b pb-2 mb-2"><b>${r.techName}</b> <span class="text-yellow-500">${'★'.repeat(r.stars||0)}</span> <span class="text-[10px]">${r.clientEmail?.split('@')[0]||''}</span><div>${r.text||''}</div></div>`});reviewsList.innerHTML=h||"No reviews"})}
+function loadAdmin(){db.collection("profiles").onSnapshot(s=>{let pend="",allT="",allC="";s.forEach(d=>{let p=d.data();if(p.role==="tech"&&!p.verified)pend+=`<div class="bg-white p-2 rounded-xl mt-1 flex justify-between text-xs"><div><b>${p.name}</b><div>${p.service}</div></div><button onclick="db.collection('profiles').doc('${d.id}').update({verified:true})" class="bg-black text-white px-2 py-1 rounded-full text-[10px]">Approve</button></div>`;if(p.role==="tech")allT+=`<div class="bg-white p-2 rounded-xl mt-1 flex justify-between text-xs"><div><b>${p.name}</b> ${p.verified?'<span class="bg-green-100 px-1 rounded-full">LIVE</span>':'<span class="bg-yellow-100 px-1 rounded-full">Pending</span>'}<div>${p.phone} ${p.online?'🟢':'⚫'}</div></div><div class="flex gap-1"><button onclick="db.collection('profiles').doc('${d.id}').update({verified:${!p.verified}})" class="bg-zinc-200 px-2 py-1 rounded-full text-[10px]">${p.verified?'Block':'Unblock'}</button><button onclick="startChat('${d.id}','${p.name}')" class="bg-black text-white px-2 py-1 rounded-full text-[10px]">Chat</button></div></div>`;if(p.role==="client")allC+=`<div class="bg-white p-2 rounded-xl mt-1 flex justify-between text-xs"><div><b>${p.name}</b><div>${p.area}</div></div><button onclick="startChat('${d.id}','${p.name}')" class="bg-pink-600 text-white px-2 py-1 rounded-full text-[10px]">Chat</button></div>`});pendingTechs.innerHTML=pend||"No pending";allTechsAdmin.innerHTML=allT||"No techs";allClientsAdmin.innerHTML=allC||"No clients"});db.collection("chats").orderBy("created","desc").limit(100).onSnapshot(s=>{let h="",seen={};s.forEach(d=>{let m=d.data(),k=m.chatId;if(seen[k])return;seen[k]=true;let icon=m.audio?'🎤 Voice':'💬';h+=`<div class="bg-white p-2 rounded-xl mt-1 text-xs"><div><b>${m.fromEmail?.split('@')[0]||m.from}</b> → <b>${m.toName}</b> ${icon}</div><div>${m.audio?'🎤 Voice note':m.msg?.substring(0,80)}</div><button onclick="viewPrivate('${m.chatId}')" class="mt-1 bg-black text-white px-3 py-1 rounded-full text-[10px]">View Chat</button></div>`});adminBookings.innerHTML=h||"No chats"})}
+function viewPrivate(id){adminModal.classList.add('hidden');chatRoomModal.classList.remove('hidden');chatRoomName.innerText="ADMIN VIEW";if(chatUnsub)chatUnsub();chatUnsub=db.collection("chats").where("chatId","==",id).orderBy("created","asc").onSnapshot(s=>{let h="";s.forEach(d=>{let m=d.data();h+=`<div class="flex"><div class="bg-white border p-2 rounded-xl shadow text-xs max-w-[75%]"><div class="text-[8px] opacity-60">${m.fromEmail}</div>${m.audio?`<audio controls src="${m.audio}" class="w-full"></audio>`:m.msg}</div></div>`});chatMessages.innerHTML=h||"Empty";chatMessages.scrollTop=chatMessages.scrollHeight})}
+function filterChat(t){currentFilter=t;['all','tech','client','admin'].forEach(f=>{let el=document.getElementById('f'+f.charAt(0).toUpperCase()+f.slice(1));if(el)el.className=f===t?'bg-black text-white px-2 py-1 rounded-full text-[11px]':'bg-white px-2 py-1 rounded-full text-[11px]'});renderChatList()}
+function renderChatList(){let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID;let f=allProfiles.filter(p=>{if(auth.currentUser&&p.id===auth.currentUser.uid)return false;return true});if(currentFilter!=='all')f=f.filter(p=>p.role===currentFilter);let h="";if(!f.find(p=>p.id===ADMIN_UID)&&(currentFilter==='all'||currentFilter==='admin')){h+=`<div onclick="startChat('${ADMIN_UID}','${ADMIN_NAME}')" class="bg-yellow-50 p-3 rounded-xl shadow border border-yellow-300 cursor-pointer text-sm"><div class="flex justify-between"><div><b>👑 ${ADMIN_NAME}</b> <span class="text-[9px] bg-green-100 px-1 rounded-full">🟢 Online</span><div class="text-[10px] text-green-600">Tap to chat - mutual</div></div><div class="bg-yellow-500 text-white px-3 py-1 rounded-full text-[11px]">Chat</div></div></div>`}f.forEach(p=>{if(p.id===ADMIN_UID&&h.includes(ADMIN_UID))return;let icon=p.role==='tech'?'💅':p.role==='admin'?'👑':'👩',color=p.role==='tech'?'bg-black':p.role==='admin'?'bg-yellow-500':'bg-pink-600';h+=`<div onclick="startChat('${p.id}','${p.name}')" class="bg-white p-3 rounded-xl shadow border cursor-pointer text-sm"><div class="flex justify-between"><div><b>${icon} ${p.name}</b> <span class="text-[9px] bg-zinc-100 px-1 rounded-full">${p.role}</span> <span class="text-[9px]">${p.online?'🟢 Online':'⚫ Offline'}</span><div class="text-xs text-zinc-500">${p.area||''} • ${p.phone||''}</div><div class="text-[9px] text-green-600">🔒 Mutual + Voice 🎤 + Typing ⌨️</div></div><div class="${color} text-white px-3 py-1 rounded-full text-[11px]">Chat</div></div></div>`});document.getElementById('chatList').innerHTML=h||`<div class="bg-white p-4 rounded-xl text-center text-xs">No ${currentFilter}</div>`}
+function openChatList(){if(!auth.currentUser&&!isAdmin){openLogin();return}chatListModal.classList.remove('hidden');renderChatList();db.collection("profiles").get().then(s=>{let list=[{id:ADMIN_UID,name:ADMIN_NAME,role:"admin",area:"Owner",phone:"Admin",verified:true,online:true}];s.forEach(d=>list.push({id:d.id,...d.data()}));allProfiles=list;renderChatList()})}
+function closeChatList(){chatListModal.classList.add('hidden')}
+function startChat(uid,name){
+ let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID;
+ curChatTarget={uid,name};chatRoomName.innerText="🔒 Mutual with "+name;
+ chatListModal.classList.add('hidden');adminModal.classList.add('hidden');chatRoomModal.classList.remove('hidden');
+ listenChat(uid);listenPresence(uid);listenTyping(uid);
+}
+function closeChatRoom(){chatRoomModal.classList.add('hidden');if(chatUnsub)chatUnsub();if(typingUnsub)typingUnsub();if(presenceUnsub)presenceUnsub()}
+function getChatId(a,b){return [a,b].sort().join("_")}
+function listenPresence(tid){
+ if(presenceUnsub)presenceUnsub();
+ presenceUnsub=db.collection("presence").doc(tid).onSnapshot(doc=>{
+  if(doc.exists&&doc.data().online){onlineStatus.innerHTML="🟢 Online now";onlineStatus.className="text-green-300"}else{onlineStatus.innerHTML="⚫ Offline";onlineStatus.className=""}
+ })
+}
+function listenTyping(tid){
+ if(typingUnsub)typingUnsub();
+ let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,chatId=getChatId(myId,tid);
+ typingUnsub=db.collection("typing").doc(chatId).onSnapshot(doc=>{
+  if(!doc.exists)return;
+  let data=doc.data();
+  for(let uid in data){
+   if(uid!==myId&&data[uid].typing){
+    typingStatus.innerText=data[uid].name+" typing... ⌨️";
+    typingStatus.classList.remove('hidden');
+    setTimeout(()=>typingStatus.classList.add('hidden'),3000);
+   }
+  }
+ })
+}
+function onTyping(){
+ let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,myName=auth.currentUser?auth.currentUser.email.split('@')[0]:"Admin",chatId=getChatId(myId,curChatTarget.uid);
+ db.collection("typing").doc(chatId).set({[myId]:{typing:true,name:myName,at:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});
+ setTimeout(()=>{db.collection("typing").doc(chatId).set({[myId]:{typing:false}},{merge:true})},2000);
+}
+function listenChat(tid){
+ if(chatUnsub)chatUnsub();
+ let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,chatId=getChatId(myId,tid);
+ chatUnsub=db.collection("chats").where("chatId","==",chatId).orderBy("created","asc").onSnapshot(s=>{
+  let h="";s.forEach(d=>{
+   let m=d.data();let me=m.from===myId;
+   if(m.audio){
+    h+=`<div class="flex ${me?'justify-end':''}"><div class="${me?'bg-black text-white':'bg-white border'} p-2 rounded-xl shadow text-xs max-w-[75%]"><div class="text-[8px] opacity-60">${m.fromEmail}</div><audio controls src="${m.audio}" class="w-48"></audio><div class="text-[8px] opacity-50 mt-1">${me?'You 🎤':m.fromEmail+' 🎤'}</div></div></div>`;
+   }else{
+    h+=`<div class="flex ${me?'justify-end':''}"><div class="${me?'bg-black text-white':'bg-white border'} p-2 rounded-xl shadow text-xs max-w-[75%]">${m.msg}<div class="text-[8px] opacity-50 mt-1">${me?'You ✓':'Seen ✓'} ${m.fromEmail?.split('@')[0]}</div></div></div>`;
+   }
+  });
+  chatMessages.innerHTML=h||"<div class='text-center mt-10 text-xs text-zinc-500'>🔒 Mutual chat<br>Voice 🎤 + Typing ⌨️ + Online 🟢<br>Say Hi! Hold 🎤 for voice note</div>";
+  chatMessages.scrollTop=chatMessages.scrollHeight
+ },err=>{
+  db.collection("chats").where("chatId","==",chatId).onSnapshot(s=>{
+   let msgs=[];s.forEach(d=>msgs.push(d.data()));msgs.sort((a,b)=>(a.created?.toMillis?.()||0)-(b.created?.toMillis?.()||0));
+   let h="";msgs.forEach(m=>{let me=m.from===myId;h+=`<div class="flex ${me?'justify-end':''}"><div class="${me?'bg-black text-white':'bg-white border'} p-2 rounded-xl shadow text-xs">${m.audio?`<audio controls src="${m.audio}"></audio>`:m.msg}</div></div>`});chatMessages.innerHTML=h
+  })
+ })
+}
+function sendMessage(){
+ let input=chatInput,msg=input.value.trim();
+ if(!msg||!curChatTarget)return;
+ let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,myEmail=auth.currentUser?auth.currentUser.email:"Admin Owner",chatId=getChatId(myId,curChatTarget.uid);
+ db.collection("chats").add({chatId,from:myId,fromEmail:myEmail,to:curChatTarget.uid,toName:curChatTarget.name,msg,created:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>{input.value="";db.collection("typing").doc(chatId).set({[myId]:{typing:false}},{merge:true})})
+}
+async function toggleVoice(){
+ let btn=voiceBtn,status=voiceStatus;
+ if(!isRecording){
+  try{
+   let stream=await navigator.mediaDevices.getUserMedia({audio:true});
+   mediaRecorder=new MediaRecorder(stream);audioChunks=[];mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
+   mediaRecorder.onstop=async ()=>{
+    let blob=new Blob(audioChunks,{type:'audio/webm'});let reader=new FileReader();
+    reader.onloadend=()=>{
+     let base64=reader.result;
+     let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,myEmail=auth.currentUser?auth.currentUser.email:"Admin Owner",chatId=getChatId(myId,curChatTarget.uid);
+     db.collection("chats").add({chatId,from:myId,fromEmail:myEmail,to:curChatTarget.uid,toName:curChatTarget.name,audio:base64,msg:"🎤 Voice note",created:firebase.firestore.FieldValue.serverTimestamp()});
+    };reader.readAsDataURL(blob);
+   };
+   mediaRecorder.start();isRecording=true;btn.innerText="⏹️";btn.className="bg-red-500 text-white px-3 py-3 rounded-full text-sm";status.classList.remove('hidden');
+  }catch(e){alert("Microphone needed for voice notes - allow mic");}
+ }else{
+  mediaRecorder.stop();isRecording=false;voiceBtn.innerText="🎤";voiceBtn.className="bg-zinc-200 px-3 py-3 rounded-full text-sm";voiceStatus.classList.add('hidden');
+  mediaRecorder.stream.getTracks().forEach(t=>t.stop());
+ }
+}
+function clearAllChats(){if(!isAdmin){alert("Admin only");return}if(!confirm("Delete all?"))return;db.collection("chats").get().then(s=>{s.forEach(d=>d.ref.delete());alert("Cleared")})}
+auth.onAuthStateChanged(u=>{updateUI();if(u){setInterval(()=>setOnline(u.uid),30000)}});
+updateUI();
+</script>
+</body>
+</html>
