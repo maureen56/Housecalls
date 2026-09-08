@@ -1,176 +1,475 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HouseCalls V33 Voice + Online + Typing</title>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Housecalls</title>
 <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<style>body{background:#FFF2F5}</style>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<style>
+.msg-me{margin-left:auto;background:linear-gradient(135deg,#e91e8c,#9333ea);color:white}
+.msg-other{margin-right:auto;background:white;border:1px solid #eee}
+.online-dot{width:10px;height:10px;background:#22c55e;border-radius:50%;border:2px solid white;position:absolute;bottom:0;right:0}
+.last-seen{font-size:10px;color:#22c55e}
+</style>
 </head>
-<body class="bg-[#FFF2F5]">
-<header class="bg-white p-4 flex justify-between items-center sticky top-0 z-40 shadow">
-<div class="font-black">HouseCalls<span class="text-pink-600">.com</span></div>
-<div class="flex gap-1">
-<button onclick="openChatList()" class="bg-pink-600 text-white px-3 py-2 rounded-full text-xs font-bold">💬 Chats</button>
-<button onclick="openAdmin()" class="bg-black text-white px-3 py-2 rounded-full text-xs font-bold">ADMIN</button>
-<button id="loginBtn" onclick="openLogin()" class="bg-black text-white px-3 py-2 rounded-full text-xs font-bold">Sign In</button>
+<body class="bg-[#fff5f7] min-h-screen pb-24">
+<div id="notifBox" class="fixed top-4 right-4 z-[9999] space-y-2 pointer-events-none"></div>
+
+<header class="bg-gradient-to-r from-pink-600 to-purple-600 text-white p-4 sticky top-0 z-50 shadow-lg">
+<div class="max-w-6xl mx-auto flex justify-between items-center">
+<b class="text-sm md:text-base">Housecalls  - All Features</b>
+<div class="flex gap-1.5 text-[11px] md:text-xs">
+<button onclick="showTab('home')" id="btn-home" class="bg-white text-pink-600 px-4 py-1.5 rounded-full font-bold shadow">Home</button>
+<button onclick="showTab('chat')" id="btn-chat" class="bg-white/20 px-4 py-1.5 rounded-full relative">Chat <span id="chatBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full text-[9px] flex items-center justify-center">0</span></button>
+<button onclick="showTab('profile')" id="btn-profile" class="bg-white/20 px-4 py-1.5 rounded-full">Profile</button>
+<button onclick="showTab('admin')" id="btn-admin" class="bg-black/20 px-4 py-1.5 rounded-full">Admin</button>
+</div>
 </div>
 </header>
-<div id="userBar" class="hidden p-2 text-center text-xs font-bold bg-green-600 text-white"></div>
-<main class="max-w-xl mx-auto p-4 pb-24">
-<div id="homePage">
-<div class="text-center mt-4"><h1 class="text-3xl font-black">Beauty Comes</h1><h1 class="text-3xl font-black text-pink-600">To Your Door</h1><p class="text-[10px]">V33: Voice 🎤 + Typing ⌨️ + Online 🟢 + Mutual</p></div>
-<div class="grid grid-cols-2 gap-3 mt-4">
-<div onclick="goTech()" class="bg-black text-white p-5 rounded-[1.5rem] text-center"><div class="text-2xl">💅</div><div class="font-black text-sm">I'm a Tech</div><div class="text-[9px] opacity-60">Tech only</div></div>
-<div onclick="goClient()" class="bg-pink-600 text-white p-5 rounded-[1.5rem] text-center"><div class="text-2xl">👩</div><div class="font-black text-sm">I'm a Client</div><div class="text-[9px] opacity-60">Client only</div></div>
+
+<!-- HOME -->
+<div id="tab-home" class="max-w-6xl mx-auto p-3">
+<div class="bg-white rounded-2xl p-3 shadow-sm mb-3">
+<div class="flex flex-wrap gap-2 justify-between items-center">
+<div class="flex gap-2">
+<button onclick="setFilter('all')" id="fAll" class="bg-pink-600 text-white px-4 py-2 rounded-full text-xs font-bold">All Approved</button>
+<button onclick="setFilter('available')" id="fAvail" class="bg-gray-100 px-4 py-2 rounded-full text-xs">Available</button>
+<button onclick="setFilter('booked')" id="fBooked" class="bg-gray-100 px-4 py-2 rounded-full text-xs">Booked</button>
+<button onclick="setFilter('near')" id="fNear" class="bg-gray-100 px-4 py-2 rounded-full text-xs">Near You</button>
 </div>
-<h2 class="font-bold mt-6 text-sm">💅 Techs (<span id="techCount">0</span>)</h2><div id="techs" class="mt-2 space-y-2"></div>
-<h2 class="font-bold mt-6 text-sm">👩 Clients (<span id="clientCount">0</span>)</h2><div id="clients" class="mt-2 space-y-2"></div>
-<div class="mt-6 bg-white p-4 rounded-[1.5rem] shadow"><h2 class="font-bold text-sm">⭐ Reviews</h2><div id="reviewsList" class="mt-2 text-xs"></div></div>
+<button onclick="getClientLoc()" class="bg-purple-600 text-white px-3 py-2 rounded-full text-xs font-bold"><i class="fas fa-location-dot"></i> <span id="locLabel">Enable GPS</span></button>
 </div>
-<div id="techPage" class="hidden bg-white p-5 rounded-[1.5rem] shadow mt-4"><div onclick="goHome()" class="text-sm">← Home</div><h2 class="font-black text-lg mt-2">💅 Tech Dashboard (Tech Only)</h2><div class="mt-4 space-y-2"><input id="tName" placeholder="Full Name" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tPhone" placeholder="Phone" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tID" placeholder="ID" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tService" placeholder="Service" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tPrice" placeholder="Price KES" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tEstate" placeholder="Estate" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="tExp" placeholder="Experience" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><button onclick="saveTech()" class="w-full bg-black text-white py-3 rounded-xl font-bold text-sm">Create Tech Profile</button><p id="techMsg" class="text-xs text-center"></p></div></div>
-<div id="clientPage" class="hidden bg-white p-5 rounded-[1.5rem] shadow mt-4"><div onclick="goHome()" class="text-sm">← Home</div><h2 class="font-black text-lg mt-2">👩 Client Dashboard (Client Only)</h2><div class="mt-4 space-y-2"><input id="cName" placeholder="Your Name" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="cPhone" placeholder="Phone" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="cEstateExact" placeholder="Estate" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><input id="cArea" placeholder="Area" class="w-full p-3 rounded-xl bg-zinc-50 text-sm"><button onclick="saveClient()" class="w-full bg-pink-600 text-white py-3 rounded-xl font-bold text-sm">Create Client Profile</button><p id="clientMsg" class="text-xs text-center"></p></div></div>
-</main>
-<div id="loginModal" class="hidden fixed inset-0 bg-black/80 z-[999] flex items-center justify-center p-4"><div class="bg-white w-full max-w-sm rounded-[1.5rem] p-5"><h2 class="font-black text-lg">Sign In - Choose Role</h2><input id="email" placeholder="email@gmail.com" class="w-full mt-3 p-3 rounded-xl bg-zinc-100 text-sm"><input id="password" type="password" placeholder="Password" class="w-full mt-2 p-3 rounded-xl bg-zinc-100 text-sm"><select id="role" class="w-full mt-2 p-3 rounded-xl bg-zinc-100 text-sm"><option value="client">I am Client</option><option value="tech">I am Tech</option></select><button onclick="doSignUp()" class="w-full bg-pink-600 text-white py-3 rounded-xl font-bold mt-3 text-sm">Create Account</button><button onclick="doSignIn()" class="w-full bg-black text-white py-3 rounded-xl font-bold mt-2 text-sm">Sign In</button><p id="error" class="text-xs text-red-600 mt-2 text-center"></p><button onclick="closeLogin()" class="w-full mt-3 text-xs">Close</button></div></div>
-<div id="adminModal" class="hidden fixed inset-0 bg-[#FFF2F5] z-[999] overflow-auto p-4"><div class="bg-white max-w-xl mx-auto p-5 rounded-[1.5rem] shadow mt-10"><div class="flex justify-between"><h2 class="font-black text-sm">🔒 ADMIN</h2><button onclick="closeAdmin()" class="bg-black text-white px-3 py-1 rounded-full text-xs">Close</button></div><div class="mt-4 bg-yellow-100 p-3 rounded-xl"><b class="text-xs">Pending Techs:</b><div id="pendingTechs" class="mt-1 text-xs"></div></div><div class="mt-4"><b class="text-xs">All Techs:</b><div id="allTechsAdmin" class="mt-1 space-y-1"></div></div><div class="mt-4"><b class="text-xs">All Clients:</b><div id="allClientsAdmin" class="mt-1 text-xs"></div></div><div class="mt-4"><b class="text-xs">All Chats - Mutual:</b><div id="adminBookings" class="mt-2 space-y-1"></div></div><div class="mt-4 flex gap-2"><button onclick="goHome();closeAdmin()" class="bg-black text-white px-4 py-2 rounded-full text-xs">Back</button><button onclick="clearAllChats()" class="bg-red-100 text-red-600 px-4 py-2 rounded-full text-xs">Clear Spam</button></div></div></div>
-<div id="chatListModal" class="hidden fixed inset-0 bg-white z-[998] flex flex-col"><div class="bg-black text-white p-3"><div class="flex justify-between"><b class="text-sm">💬 Mutual Chats</b><button onclick="closeChatList()" class="bg-white text-black px-3 py-1 rounded-full text-xs">Close</button></div><div class="text-[9px] opacity-60">Online 🟢 + Voice 🎤 + Typing ⌨️ - Both see</div></div><div class="flex gap-1 p-2 bg-zinc-100"><button onclick="filterChat('all')" id="fAll" class="bg-black text-white px-2 py-1 rounded-full text-[11px]">All</button><button onclick="filterChat('tech')" id="fTech" class="bg-white px-2 py-1 rounded-full text-[11px]">Techs</button><button onclick="filterChat('client')" id="fClient" class="bg-white px-2 py-1 rounded-full text-[11px]">Clients</button><button onclick="filterChat('admin')" id="fAdmin" class="bg-white px-2 py-1 rounded-full text-[11px]">Admin</button></div><div id="chatList" class="flex-1 overflow-auto p-3 space-y-2 bg-[#FFF2F5]"></div></div>
-  <div id="chatRoomModal" class="hidden fixed inset-0 bg-white z-[1000] flex flex-col">
-<div class="bg-pink-600 text-white p-3 flex justify-between">
-<div>
-<b id="chatRoomName" class="text-sm">Private Chat</b>
-<div id="chatRoomSub" class="text-[10px] opacity-80">🔒 Mutual • <span id="onlineStatus">● Offline</span> • <span id="typingStatus" class="hidden italic">typing...</span></div>
+<div class="mt-3 flex flex-wrap gap-3 items-center text-xs border-t pt-3">
+<label class="flex gap-2 items-center font-bold"><input type="checkbox" id="isTech" onchange="toggleTechBar()" class="w-4 h-4 accent-pink-600"> I am Tech - Go Live</label>
+<span id="onlineStatus" class="hidden text-green-600 text-[11px]"><span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online Now - <span id="lastSeenTxt"></span></span>
+<span id="techLiveHint" class="hidden text-green-600 text-[11px]">Live after admin approval</span>
 </div>
-<button onclick="closeChatRoom()" class="bg-white text-pink-600 px-3 py-1 rounded-full text-xs">Back</button>
+<div id="techBar" class="hidden mt-3 grid grid-cols-3 gap-2">
+<select id="statusSel" onchange="updateMyStatus()" class="p-2.5 border rounded-xl text-xs"><option value="available">Available</option><option value="booked">Booked - Show BOOKED badge</option><option value="offline">Offline</option></select>
+<button onclick="updateMyLocation()" class="bg-purple-100 text-purple-700 p-2.5 rounded-xl text-xs font-bold">Update Location</button>
+<button onclick="showTab('profile')" class="bg-pink-100 text-pink-700 p-2.5 rounded-xl text-xs font-bold">Edit Profile</button>
 </div>
-<div id="chatMessages" class="flex-1 overflow-auto p-3 space-y-2 bg-[#FFF2F5]"></div>
-<div class="p-2 border-t bg-white">
+</div>
+
+<div id="emptyState" class="bg-white rounded-2xl p-6 text-center shadow-sm">
+<h3 class="font-bold text-sm">No approved techs yet</h3>
+<p class="text-xs text-gray-500 mt-1">Create your tech profile → Admin will approve → You go live</p>
+<button onclick="showTab('profile')" class="mt-3 bg-pink-600 text-white px-6 py-3 rounded-full font-bold text-sm">Create Profile + Nails & Hair</button>
+</div>
+<div id="techGrid" class="grid md:grid-cols-2 gap-3"></div>
+</div>
+  <!-- CHAT - FIXED FOR 3 TYPES -->
+<div id="tab-chat" class="hidden max-w-3xl mx-auto p-3">
+<div class="bg-white rounded-2xl shadow-sm h-[78vh] flex flex-col">
+<div class="p-3 border-b bg-pink-50 flex justify-between items-center">
+<div><b class="text-sm">Chat - All See Messages</b><p class="text-[10px] text-gray-500">Tech ↔ Client ↔ Admin • Voice + Online + Notification</p></div>
+<div class="text-right"><span id="typingTxt" class="hidden text-[11px] text-purple-600 bg-purple-100 px-2 py-1 rounded-full">typing...</span><div id="onlineList" class="text-[10px] text-green-600 mt-1"></div></div>
+</div>
+<div id="chatBox" class="flex-1 overflow-y-auto p-3 space-y-3 bg-[#faf5f6]"></div>
+<div class="p-3 border-t flex gap-2 items-center bg-white rounded-b-2xl">
+<button onclick="toggleVoice()" id="voiceBtn" class="bg-gray-100 w-10 h-10 rounded-full flex-shrink-0"><i class="fas fa-microphone text-pink-600"></i></button>
+<input id="chatInput" placeholder="Type message..." class="flex-1 p-3 border rounded-full text-sm" oninput="onTyping()" onkeypress="if(event.key==='Enter')sendChat()">
+<button onclick="sendChat()" class="bg-pink-600 text-white w-10 h-10 rounded-full flex-shrink-0"><i class="fas fa-paper-plane"></i></button>
+</div>
+</div>
+</div>
+
+<!-- PROFILE -->
+<div id="tab-profile" class="hidden max-w-2xl mx-auto p-3">
+<div class="bg-white rounded-2xl p-4 space-y-4 shadow-sm">
+<h2 class="font-bold text-sm">Tech Profile - Will need Admin Approval</h2>
+<div class="flex gap-4">
+<div class="relative"><img id="profImg" src="https://via.placeholder.com/120?text=Photo" class="w-24 h-24 rounded-full object-cover border-4 border-pink-200"><div class="online-dot hidden" id="myOnlineDot"></div></div>
+<div class="flex-1 space-y-2">
+<input id="inpName" placeholder="Full Name" class="w-full p-3 border rounded-xl text-sm">
+<input id="inpEmail" placeholder="Email (for approval)" class="w-full p-3 border rounded-xl text-sm">
+<input id="inpPhone" placeholder="Phone (WhatsApp)" class="w-full p-3 border rounded-xl text-sm">
+<input id="inpArea" placeholder="Area - Eldoret (Annex, CBD...)" class="w-full p-3 border rounded-xl text-sm">
+<input type="file" accept="image/*" onchange="fileToBase(this,'profImg','profB64')" class="text-[11px]">
+<p class="text-[10px] text-gray-400">Profile photo - Required for client sign</p>
+</div>
+</div>
+<textarea id="inpBio" placeholder="Bio - what you do (Gel, Braids...)" class="w-full p-3 border rounded-xl text-sm"></textarea>
+<div class="border rounded-xl p-3 bg-pink-50/50">
+<label class="font-bold text-xs">Nails & Hair Portfolio (4 photos - mix):</label>
+<div class="grid grid-cols-4 gap-2 mt-2">
+<div><img id="sImg1" src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=200" class="h-20 object-cover rounded-xl border w-full"><input type="file" accept="image/*" onchange="fileToBase(this,'sImg1','samp1')" class="text-[9px] w-full mt-1"></div>
+<div><img id="sImg2" src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=200" class="h-20 object-cover rounded-xl border w-full"><input type="file" accept="image/*" onchange="fileToBase(this,'sImg2','samp2')" class="text-[9px] w-full mt-1"></div>
+<div><img id="sImg3" src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200" class="h-20 object-cover rounded-xl border w-full"><input type="file" accept="image/*" onchange="fileToBase(this,'sImg3','samp3')" class="text-[9px] w-full mt-1"></div>
+<div><img id="sImg4" src="https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=200" class="h-20 object-cover rounded-xl border w-full"><input type="file" accept="image/*" onchange="fileToBase(this,'sImg4','samp4')" class="text-[9px] w-full mt-1"></div>
+</div>
+</div>
+<button onclick="saveProfile()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3.5 rounded-xl font-bold text-sm">Submit for Admin Approval</button>
+<p class="text-[11px] text-center text-gray-500">After save, you will be pending. Admin must approve in Admin tab. Then you appear on Home with Online dot + Last Seen</p>
+
+<!-- CLIENT QUICK SIGN -->
+<div class="border-t pt-4 mt-2">
+<h3 class="font-bold text-sm">Or - Client Sign Up (for booking)</h3>
+<p class="text-[11px] text-gray-500 mb-2">Clients: Your info will show when you book (name, photo, location, date)</p>
+<div class="grid grid-cols-2 gap-2">
+<input id="cliName" placeholder="Client Name" class="p-3 border rounded-xl text-sm">
+<input id="cliPhone" placeholder="Client Phone" class="p-3 border rounded-xl text-sm">
+<input id="cliLoc" placeholder="Your Location" class="p-3 border rounded-xl text-sm">
+<input id="cliDate" type="date" class="p-3 border rounded-xl text-sm">
+</div>
+<div class="flex gap-2 mt-2 items-center">
+<img id="cliImg" src="https://via.placeholder.com/80?text=You" class="w-14 h-14 rounded-full object-cover border">
+<input type="file" accept="image/*" onchange="fileToBase(this,'cliImg','cliB64')" class="text-[11px]">
+<button onclick="saveClient()" class="bg-black text-white px-5 py-2 rounded-full text-xs font-bold">Save Client Info</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ADMIN - SECURED -->
+<div id="tab-admin" class="hidden max-w-4xl mx-auto p-3">
+<div id="adminLogin" class="bg-white rounded-2xl p-6 max-w-sm mx-auto mt-10 text-center shadow-sm border">
+<h2 class="font-bold mb-1">Admin Login - Secured</h2>
+<p class="text-[11px] text-gray-500 mb-3">Password is hidden, not visible</p>
+<div class="relative">
+<input id="adminPass" type="password" placeholder="Enter admin password" class="w-full p-3 border rounded-xl text-sm pr-10">
+<button onclick="togglePass()" class="absolute right-3 top-3 text-gray-400"><i class="fas fa-eye" id="eyeIcon"></i></button>
+</div>
+<button onclick="adminLogin()" class="w-full bg-black text-white py-3 rounded-xl font-bold mt-3 text-sm">Login Securely</button>
+<p class="text-[10px] text-gray-400 mt-2">Hint is not shown - secure</p>
+</div>
+  <div id="adminPanel" class="hidden space-y-4">
+<div class="bg-white rounded-2xl p-4 shadow-sm flex justify-between items-center">
+<h2 class="font-bold text-sm">Admin Dashboard V36 - Approvals + Reviews + Clients + Online</h2>
+<button onclick="adminLogout()" class="text-xs bg-gray-100 px-3 py-1.5 rounded-full">Logout</button>
+</div>
+
+<div class="grid md:grid-cols-3 gap-3">
+<div class="bg-white rounded-2xl p-4 shadow-sm">
+<h3 class="font-bold text-xs mb-2">⏳ Pending Tech Approvals</h3>
+<div id="adminPending" class="space-y-2 max-h-96 overflow-y-auto"></div>
+</div>
+<div class="bg-white rounded-2xl p-4 shadow-sm">
+<h3 class="font-bold text-xs mb-2">✅ Approved Techs + Online Status</h3>
+<div id="adminTechs" class="space-y-2 max-h-96 overflow-y-auto"></div>
+</div>
+<div class="bg-white rounded-2xl p-4 shadow-sm">
+<h3 class="font-bold text-xs mb-2">📅 Client Bookings (Name, Photo, Location, Date)</h3>
+<div id="adminBookings" class="space-y-2 max-h-96 overflow-y-auto"></div>
+</div>
+</div>
+
+<div class="grid md:grid-cols-2 gap-3">
+<div class="bg-white rounded-2xl p-4 shadow-sm">
+<h3 class="font-bold text-xs mb-2">⭐ Reviews Management</h3>
+<div id="adminReviews" class="space-y-2 max-h-64 overflow-y-auto"></div>
+</div>
+<div class="bg-white rounded-2xl p-4 shadow-sm">
+<h3 class="font-bold text-xs mb-2">💬 Chat Monitor + Online Users</h3>
+<div id="adminOnline" class="space-y-1 mb-2 text-xs"></div>
+<div id="adminChat" class="space-y-1 max-h-64 overflow-y-auto text-xs"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- BOOK MODAL - CLIENT SIGN -->
+<div id="bookModal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center p-4">
+<div class="bg-white rounded-2xl p-5 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+<h3 id="bmName" class="font-bold text-sm"></h3><p id="bmEmail" class="text-[11px] text-gray-500"></p>
+<div class="mt-3 space-y-2">
+<p class="text-xs font-bold">Client Booking - Will show your Name, Photo, Location, Date to Tech & Admin</p>
+<input id="cName" placeholder="Your Full Name" class="w-full p-3 border rounded-xl text-sm">
+<input id="cPhone" placeholder="Your Phone" class="w-full p-3 border rounded-xl text-sm">
 <div class="flex gap-2 items-center">
-<input id="chatInput" oninput="onTyping()" placeholder="Type - both see..." class="flex-1 p-3 rounded-xl bg-zinc-100 text-sm">
-<button id="voiceBtn" onclick="toggleVoice()" class="bg-zinc-200 px-3 py-3 rounded-full text-sm">🎤</button>
-<button onclick="sendMessage()" class="bg-black text-white px-4 py-3 rounded-xl text-sm">Send</button>
+<img id="cImgPrev" src="https://via.placeholder.com/60?text=You" class="w-12 h-12 rounded-full object-cover border">
+<input type="file" accept="image/*" onchange="fileToBase(this,'cImgPrev','bookCliB64')" class="text-[11px] flex-1">
 </div>
-<div id="voiceStatus" class="hidden text-[10px] text-red-600 mt-1 text-center">🔴 Recording... Tap 🎤 to stop and send voice note</div>
+<input id="cLocation" placeholder="Your Location (auto GPS or type)" class="w-full p-3 border rounded-xl text-sm">
+<input id="cDate" type="date" class="w-full p-3 border rounded-xl text-sm">
+<input id="cTime" type="time" class="w-full p-3 border rounded-xl text-sm">
+<select id="cService" class="w-full p-3 border rounded-xl text-sm"><option>Gel Nails</option><option>Acrylic Nails</option><option>Braids</option><option>Weave / Wig</option><option>Haircut</option><option>Full Glam</option></select>
+</div>
+<button onclick="confirmBook()" class="w-full mt-4 bg-pink-600 text-white py-3 rounded-xl font-bold text-sm">Book & Notify + Show BOOKED Badge</button>
+<button onclick="closeBook()" class="w-full mt-2 bg-gray-100 py-2 rounded-xl text-sm">Cancel</button>
 </div>
 </div>
-<div id="reviewModal" class="hidden fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4"><div class="bg-white w-full max-w-sm rounded-[1.5rem] p-5"><h2 class="font-bold text-sm">⭐ Review <span id="reviewName"></span></h2><div class="flex gap-1 mt-2 text-2xl"><span onclick="setStars(1)" id="s1">☆</span><span onclick="setStars(2)" id="s2">☆</span><span onclick="setStars(3)" id="s3">☆</span><span onclick="setStars(4)" id="s4">☆</span><span onclick="setStars(5)" id="s5">☆</span></div><textarea id="reviewText" placeholder="Write review..." class="w-full mt-3 p-3 rounded-xl bg-zinc-100 h-16 text-sm"></textarea><button onclick="submitReview()" class="w-full bg-black text-white py-3 rounded-xl font-bold mt-3 text-sm">Post Review</button><button onclick="closeReview()" class="w-full mt-2 text-xs">Cancel</button></div></div>
-<script>
-const firebaseConfig={apiKey:"AIzaSyD5HtYXW1tdYcABGqpG_ZLJNidij_QSfOw",authDomain:"house-calls-eldoret.firebaseapp.com",projectId:"house-calls-eldoret",storageBucket:"house-calls-eldoret.firebasestorage.app",messagingSenderId:"952901879825",appId:"1:952901879825:web:c6faa910449dd7347789b0"};
-firebase.initializeApp(firebaseConfig);const db=firebase.firestore(),auth=firebase.auth();
-let curStars=0,curReviewUid="",curChatTarget=null,chatUnsub=null,typingUnsub=null,presenceUnsub=null,currentFilter="all",allProfiles=[],isAdmin=false,myRole=null;
-let mediaRecorder=null,audioChunks=[],isRecording=false;
-const ADMIN_UID="ADMIN_OWNER",ADMIN_NAME="Admin (Owner)",ADMIN_PASS="EldoretAdmin2026!";
-function openLogin(){loginModal.classList.remove('hidden')}function closeLogin(){loginModal.classList.add('hidden')}
-function openAdmin(){let p=prompt("Owner Pass:");if(p===ADMIN_PASS){isAdmin=true;adminModal.classList.remove('hidden');loadAdmin()}else if(p!==null)alert("Wrong!")}
-function closeAdmin(){adminModal.classList.add('hidden')}
-function goHome(){homePage.classList.remove('hidden');techPage.classList.add('hidden');clientPage.classList.add('hidden')}
-async function goTech(){if(!auth.currentUser){openLogin();return}let snap=await db.collection("users").doc(auth.currentUser.uid).get();myRole=snap.exists?snap.data().role:null;if(myRole==="client"){alert("⛔ CLIENT cannot access Tech dashboard");return}homePage.classList.add('hidden');techPage.classList.remove('hidden')}
-async function goClient(){if(!auth.currentUser){openLogin();return}let snap=await db.collection("users").doc(auth.currentUser.uid).get();myRole=snap.exists?snap.data().role:null;if(myRole==="tech"){alert("⛔ TECH cannot access Client dashboard");return}homePage.classList.add('hidden');clientPage.classList.remove('hidden')}
-function openReview(u,n){curReviewUid=u;reviewName.innerText=n;setStars(0);reviewModal.classList.remove('hidden')}
-function closeReview(){reviewModal.classList.add('hidden')}
-function setStars(n){curStars=n;for(let i=1;i<=5;i++)document.getElementById('s'+i).innerText=i<=n?"★":"☆"}
-function submitReview(){if(!curStars){alert("Pick stars");return}db.collection("reviews").add({techUid:curReviewUid,techName:reviewName.innerText,clientUid:auth.currentUser?auth.currentUser.uid:ADMIN_UID,clientEmail:auth.currentUser?auth.currentUser.email:"Admin",stars:curStars,text:reviewText.value,created:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>{closeReview();loadReviews()})}
-function doSignUp(){let e=email.value.trim(),p=password.value,r=role.value,err=error;if(!e.includes("@")||p.length<6){err.innerText="Valid email+6";return}auth.createUserWithEmailAndPassword(e,p).then(c=>{return db.collection("users").doc(c.user.uid).set({email:e,role:r,ticket:"HC-2026-"+Math.floor(1000+Math.random()*9000),created:new Date()})}).then(()=>{err.innerText="✅ Created as "+role.value.toUpperCase()+"! Sign In";err.style.color="green"}).catch(ex=>err.innerText=ex.message)}
-function doSignIn(){let e=email.value.trim(),p=password.value,err=error;err.innerText="Signing...";auth.signInWithEmailAndPassword(e,p).then(()=>{closeLogin();updateUI()}).catch(ex=>err.innerText=ex.message)}
-async function saveTech(){let n=tName.value.trim(),ph=tPhone.value.trim();if(!n||!ph){techMsg.innerText="Name+Phone";return}let uid=auth.currentUser.uid;let snap=await db.collection("users").doc(uid).get();if(snap.exists&&snap.data().role==="client"){techMsg.innerText="⛔ CLIENT cannot create Tech";return}db.collection("users").doc(uid).get().then(d=>{let u=d.data()||{};return db.collection("profiles").doc(uid).set({uid,name:n,phone:ph,idNumber:tID.value,service:tService.value,price:tPrice.value,area:tEstate.value,estate:tEstate.value,experience:tExp.value,role:"tech",email:u.email||auth.currentUser.email,ticket:u.ticket||"HC",verified:false,online:true,lastSeen:firebase.firestore.FieldValue.serverTimestamp(),created:new Date()})}).then(()=>{techMsg.innerText="✅ Sent";setTimeout(goHome,1000)})}
-async function saveClient(){let n=cName.value.trim(),ph=cPhone.value.trim();if(!n||!ph){clientMsg.innerText="Name+Phone";return}let uid=auth.currentUser.uid;let snap=await db.collection("users").doc(uid).get();if(snap.exists&&snap.data().role==="tech"){clientMsg.innerText="⛔ TECH cannot create Client";return}db.collection("users").doc(uid).get().then(d=>{let u=d.data()||{};return db.collection("profiles").doc(uid).set({uid,name:n,phone:ph,estate:cEstateExact.value,area:cArea.value,role:"client",email:u.email||auth.currentUser.email,ticket:u.ticket||"HC",verified:true,online:true,lastSeen:firebase.firestore.FieldValue.serverTimestamp(),created:new Date()})}).then(()=>{clientMsg.innerText="✅ Created";setTimeout(goHome,1000)})}
-function updateUI(){let u=auth.currentUser;if(u){userBar.classList.remove('hidden');db.collection("users").doc(u.uid).get().then(doc=>{myRole=doc.exists?doc.data().role:"unknown";userBar.innerHTML=`✓ ${u.email} | ${myRole.toUpperCase()} | 🟢 Online | <span onclick="auth.signOut().then(()=>location.reload())" style="text-decoration:underline">Logout</span>`;setOnline(u.uid)});loginBtn.innerText="Account"}else{userBar.classList.add('hidden');loginBtn.innerText="Sign In";myRole=null}loadProfiles();loadReviews()}
-function setOnline(uid){if(!uid)return;db.collection("presence").doc(uid).set({online:true,lastSeen:firebase.firestore.FieldValue.serverTimestamp(),name:auth.currentUser?auth.currentUser.email:ADMIN_NAME},{merge:true})}
-function loadProfiles(){db.collection("profiles").onSnapshot(s=>{let t="",c="",tc=0,cc=0,list=[];list.push({id:ADMIN_UID,name:ADMIN_NAME,role:"admin",area:"Owner",phone:"Admin",verified:true,online:true});s.forEach(doc=>{let p={id:doc.id,...doc.data()};list.push(p);let isMe=auth.currentUser&&doc.id===auth.currentUser.uid;if(p.role==="tech"){if(p.verified){tc++;t+=`<div class="bg-white p-3 rounded-xl shadow border text-sm"><b>${p.name}</b> <span class="text-[10px] bg-green-100 px-1 rounded-full">LIVE</span> <span class="text-[9px]">${p.online?'🟢 Online':'⚫ Offline'}</span><div class="text-xs">${p.service} • ${p.price}</div><div class="flex gap-1 mt-1"><button onclick="startChat('${doc.id}','${p.name}')" class="bg-black text-white px-3 py-1 rounded-full text-[11px]">💬 Chat</button><button onclick="openReview('${doc.id}','${p.name}')" class="bg-yellow-100 px-2 py-1 rounded-full text-[11px]">⭐ Review</button></div></div>`}}else if(p.role==="client"){cc++;c+=`<div class="bg-white p-3 rounded-xl shadow border text-sm"><b>${p.name}</b> ${isMe?'(YOU)':''} <span class="text-[9px]">${p.online?'🟢 Online':'⚫ Offline'}</span><div class="text-xs">${p.area} • ${p.phone}</div><button onclick="startChat('${doc.id}','${p.name}')" class="mt-1 bg-pink-600 text-white px-3 py-1 rounded-full text-[11px]">💬 Chat</button></div>`}});allProfiles=list;techs.innerHTML=t||"<div class='bg-white p-3 rounded-xl text-xs'>No techs</div>";clients.innerHTML=c||"<div class='bg-white p-3 rounded-xl text-xs'>No clients</div>";techCount.innerText=tc;clientCount.innerText=cc})}
-function loadReviews(){db.collection("reviews").orderBy("created","desc").limit(20).onSnapshot(s=>{let h="";s.forEach(d=>{let r=d.data();h+=`<div class="border-b pb-2 mb-2"><b>${r.techName}</b> <span class="text-yellow-500">${'★'.repeat(r.stars||0)}</span> <span class="text-[10px]">${r.clientEmail?.split('@')[0]||''}</span><div>${r.text||''}</div></div>`});reviewsList.innerHTML=h||"No reviews"})}
-function loadAdmin(){db.collection("profiles").onSnapshot(s=>{let pend="",allT="",allC="";s.forEach(d=>{let p=d.data();if(p.role==="tech"&&!p.verified)pend+=`<div class="bg-white p-2 rounded-xl mt-1 flex justify-between text-xs"><div><b>${p.name}</b><div>${p.service}</div></div><button onclick="db.collection('profiles').doc('${d.id}').update({verified:true})" class="bg-black text-white px-2 py-1 rounded-full text-[10px]">Approve</button></div>`;if(p.role==="tech")allT+=`<div class="bg-white p-2 rounded-xl mt-1 flex justify-between text-xs"><div><b>${p.name}</b> ${p.verified?'<span class="bg-green-100 px-1 rounded-full">LIVE</span>':'<span class="bg-yellow-100 px-1 rounded-full">Pending</span>'}<div>${p.phone} ${p.online?'🟢':'⚫'}</div></div><div class="flex gap-1"><button onclick="db.collection('profiles').doc('${d.id}').update({verified:${!p.verified}})" class="bg-zinc-200 px-2 py-1 rounded-full text-[10px]">${p.verified?'Block':'Unblock'}</button><button onclick="startChat('${d.id}','${p.name}')" class="bg-black text-white px-2 py-1 rounded-full text-[10px]">Chat</button></div></div>`;if(p.role==="client")allC+=`<div class="bg-white p-2 rounded-xl mt-1 flex justify-between text-xs"><div><b>${p.name}</b><div>${p.area}</div></div><button onclick="startChat('${d.id}','${p.name}')" class="bg-pink-600 text-white px-2 py-1 rounded-full text-[10px]">Chat</button></div>`});pendingTechs.innerHTML=pend||"No pending";allTechsAdmin.innerHTML=allT||"No techs";allClientsAdmin.innerHTML=allC||"No clients"});db.collection("chats").orderBy("created","desc").limit(100).onSnapshot(s=>{let h="",seen={};s.forEach(d=>{let m=d.data(),k=m.chatId;if(seen[k])return;seen[k]=true;let icon=m.audio?'🎤 Voice':'💬';h+=`<div class="bg-white p-2 rounded-xl mt-1 text-xs"><div><b>${m.fromEmail?.split('@')[0]||m.from}</b> → <b>${m.toName}</b> ${icon}</div><div>${m.audio?'🎤 Voice note':m.msg?.substring(0,80)}</div><button onclick="viewPrivate('${m.chatId}')" class="mt-1 bg-black text-white px-3 py-1 rounded-full text-[10px]">View Chat</button></div>`});adminBookings.innerHTML=h||"No chats"})}
-function viewPrivate(id){adminModal.classList.add('hidden');chatRoomModal.classList.remove('hidden');chatRoomName.innerText="ADMIN VIEW";if(chatUnsub)chatUnsub();chatUnsub=db.collection("chats").where("chatId","==",id).orderBy("created","asc").onSnapshot(s=>{let h="";s.forEach(d=>{let m=d.data();h+=`<div class="flex"><div class="bg-white border p-2 rounded-xl shadow text-xs max-w-[75%]"><div class="text-[8px] opacity-60">${m.fromEmail}</div>${m.audio?`<audio controls src="${m.audio}" class="w-full"></audio>`:m.msg}</div></div>`});chatMessages.innerHTML=h||"Empty";chatMessages.scrollTop=chatMessages.scrollHeight})}
-function filterChat(t){currentFilter=t;['all','tech','client','admin'].forEach(f=>{let el=document.getElementById('f'+f.charAt(0).toUpperCase()+f.slice(1));if(el)el.className=f===t?'bg-black text-white px-2 py-1 rounded-full text-[11px]':'bg-white px-2 py-1 rounded-full text-[11px]'});renderChatList()}
-function renderChatList(){let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID;let f=allProfiles.filter(p=>{if(auth.currentUser&&p.id===auth.currentUser.uid)return false;return true});if(currentFilter!=='all')f=f.filter(p=>p.role===currentFilter);let h="";if(!f.find(p=>p.id===ADMIN_UID)&&(currentFilter==='all'||currentFilter==='admin')){h+=`<div onclick="startChat('${ADMIN_UID}','${ADMIN_NAME}')" class="bg-yellow-50 p-3 rounded-xl shadow border border-yellow-300 cursor-pointer text-sm"><div class="flex justify-between"><div><b>👑 ${ADMIN_NAME}</b> <span class="text-[9px] bg-green-100 px-1 rounded-full">🟢 Online</span><div class="text-[10px] text-green-600">Tap to chat - mutual</div></div><div class="bg-yellow-500 text-white px-3 py-1 rounded-full text-[11px]">Chat</div></div></div>`}f.forEach(p=>{if(p.id===ADMIN_UID&&h.includes(ADMIN_UID))return;let icon=p.role==='tech'?'💅':p.role==='admin'?'👑':'👩',color=p.role==='tech'?'bg-black':p.role==='admin'?'bg-yellow-500':'bg-pink-600';h+=`<div onclick="startChat('${p.id}','${p.name}')" class="bg-white p-3 rounded-xl shadow border cursor-pointer text-sm"><div class="flex justify-between"><div><b>${icon} ${p.name}</b> <span class="text-[9px] bg-zinc-100 px-1 rounded-full">${p.role}</span> <span class="text-[9px]">${p.online?'🟢 Online':'⚫ Offline'}</span><div class="text-xs text-zinc-500">${p.area||''} • ${p.phone||''}</div><div class="text-[9px] text-green-600">🔒 Mutual + Voice 🎤 + Typing ⌨️</div></div><div class="${color} text-white px-3 py-1 rounded-full text-[11px]">Chat</div></div></div>`});document.getElementById('chatList').innerHTML=h||`<div class="bg-white p-4 rounded-xl text-center text-xs">No ${currentFilter}</div>`}
-function openChatList(){if(!auth.currentUser&&!isAdmin){openLogin();return}chatListModal.classList.remove('hidden');renderChatList();db.collection("profiles").get().then(s=>{let list=[{id:ADMIN_UID,name:ADMIN_NAME,role:"admin",area:"Owner",phone:"Admin",verified:true,online:true}];s.forEach(d=>list.push({id:d.id,...d.data()}));allProfiles=list;renderChatList()})}
-function closeChatList(){chatListModal.classList.add('hidden')}
-function startChat(uid,name){
- let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID;
- curChatTarget={uid,name};chatRoomName.innerText="🔒 Mutual with "+name;
- chatListModal.classList.add('hidden');adminModal.classList.add('hidden');chatRoomModal.classList.remove('hidden');
- listenChat(uid);listenPresence(uid);listenTyping(uid);
-}
-function closeChatRoom(){chatRoomModal.classList.add('hidden');if(chatUnsub)chatUnsub();if(typingUnsub)typingUnsub();if(presenceUnsub)presenceUnsub()}
-function getChatId(a,b){return [a,b].sort().join("_")}
-function listenPresence(tid){
- if(presenceUnsub)presenceUnsub();
- presenceUnsub=db.collection("presence").doc(tid).onSnapshot(doc=>{
-  if(doc.exists&&doc.data().online){onlineStatus.innerHTML="🟢 Online now";onlineStatus.className="text-green-300"}else{onlineStatus.innerHTML="⚫ Offline";onlineStatus.className=""}
- })
-}
-function listenTyping(tid){
- if(typingUnsub)typingUnsub();
- let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,chatId=getChatId(myId,tid);
- typingUnsub=db.collection("typing").doc(chatId).onSnapshot(doc=>{
-  if(!doc.exists)return;
-  let data=doc.data();
-  for(let uid in data){
-   if(uid!==myId&&data[uid].typing){
-    typingStatus.innerText=data[uid].name+" typing... ⌨️";
-    typingStatus.classList.remove('hidden');
-    setTimeout(()=>typingStatus.classList.add('hidden'),3000);
-   }
-  }
- })
-}
-function onTyping(){
- let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,myName=auth.currentUser?auth.currentUser.email.split('@')[0]:"Admin",chatId=getChatId(myId,curChatTarget.uid);
- db.collection("typing").doc(chatId).set({[myId]:{typing:true,name:myName,at:firebase.firestore.FieldValue.serverTimestamp()}},{merge:true});
- setTimeout(()=>{db.collection("typing").doc(chatId).set({[myId]:{typing:false}},{merge:true})},2000);
-}
-function listenChat(tid){
- if(chatUnsub)chatUnsub();
- let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,chatId=getChatId(myId,tid);
- chatUnsub=db.collection("chats").where("chatId","==",chatId).orderBy("created","asc").onSnapshot(s=>{
-  let h="";s.forEach(d=>{
-   let m=d.data();let me=m.from===myId;
-   if(m.audio){
-    h+=`<div class="flex ${me?'justify-end':''}"><div class="${me?'bg-black text-white':'bg-white border'} p-2 rounded-xl shadow text-xs max-w-[75%]"><div class="text-[8px] opacity-60">${m.fromEmail}</div><audio controls src="${m.audio}" class="w-48"></audio><div class="text-[8px] opacity-50 mt-1">${me?'You 🎤':m.fromEmail+' 🎤'}</div></div></div>`;
-   }else{
-    h+=`<div class="flex ${me?'justify-end':''}"><div class="${me?'bg-black text-white':'bg-white border'} p-2 rounded-xl shadow text-xs max-w-[75%]">${m.msg}<div class="text-[8px] opacity-50 mt-1">${me?'You ✓':'Seen ✓'} ${m.fromEmail?.split('@')[0]}</div></div></div>`;
-   }
+
+<!-- REVIEW MODAL -->
+<div id="reviewModal" class="fixed inset-0 bg-black/60 hidden z-[100] flex items-center justify-center p-4">
+<div class="bg-white rounded-2xl p-5 w-full max-w-sm">
+<h3 class="font-bold text-sm">Review <span id="rvName"></span></h3>
+<div class="flex gap-1 my-3 text-2xl" id="starBox"><span onclick="setStars(1)">☆</span><span onclick="setStars(2)">☆</span><span onclick="setStars(3)">☆</span><span onclick="setStars(4)">☆</span><span onclick="setStars(5)">☆</span></div>
+<textarea id="rvText" placeholder="How was service? Stars + comment will show on profile" class="w-full p-3 border rounded-xl text-sm"></textarea>
+<button onclick="submitReview()" class="w-full mt-3 bg-pink-600 text-white py-3 rounded-xl font-bold text-sm">Submit Review</button>
+<button onclick="document.getElementById('reviewModal').classList.add('hidden')" class="w-full mt-2 bg-gray-100 py-2 rounded-xl text-sm">Close</button>
+</div>
+</div>
+  <script>
+const fbCfg={apiKey:"AIzaSy_placeholder",authDomain:"house-calls-eldoret.firebaseapp.com",databaseURL:"https://house-calls-eldoret-default-rtdb.firebaseio.com",projectId:"house-calls-eldoret"};
+try{firebase.initializeApp(fbCfg);}catch(e){} const db=firebase.database?firebase.database():null;
+const ADMIN_HASH="EldoretAdmin2026!";
+let myClientLoc=JSON.parse(localStorage.getItem('clientLoc')||'null');
+let myTechProfile=JSON.parse(localStorage.getItem('myTechV36')||'null');
+let myClientInfo=JSON.parse(localStorage.getItem('myClientV36')||'null');
+let filter='all',selectedTech=null,starVal=0,mediaRecorder=null,lastChatCount=0;
+
+function showTab(t){
+  ['home','chat','profile','admin'].forEach(x=>document.getElementById('tab-'+x).classList.add('hidden'));
+  document.getElementById('tab-'+t).classList.remove('hidden');
+  ['home','chat','profile','admin'].forEach(x=>{
+    let b=document.getElementById('btn-'+x);
+    if(b) b.className= (x===t)?'bg-white text-pink-600 px-4 py-1.5 rounded-full font-bold shadow':'bg-white/20 px-4 py-1.5 rounded-full';
   });
-  chatMessages.innerHTML=h||"<div class='text-center mt-10 text-xs text-zinc-500'>🔒 Mutual chat<br>Voice 🎤 + Typing ⌨️ + Online 🟢<br>Say Hi! Hold 🎤 for voice note</div>";
-  chatMessages.scrollTop=chatMessages.scrollHeight
- },err=>{
-  db.collection("chats").where("chatId","==",chatId).onSnapshot(s=>{
-   let msgs=[];s.forEach(d=>msgs.push(d.data()));msgs.sort((a,b)=>(a.created?.toMillis?.()||0)-(b.created?.toMillis?.()||0));
-   let h="";msgs.forEach(m=>{let me=m.from===myId;h+=`<div class="flex ${me?'justify-end':''}"><div class="${me?'bg-black text-white':'bg-white border'} p-2 rounded-xl shadow text-xs">${m.audio?`<audio controls src="${m.audio}"></audio>`:m.msg}</div></div>`});chatMessages.innerHTML=h
-  })
- })
+  if(t==='home') renderHome();
+  if(t==='chat'){ loadChat(); markRead(); }
+  if(t==='admin') checkAdmin();
+  updatePresence();
 }
-function sendMessage(){
- let input=chatInput,msg=input.value.trim();
- if(!msg||!curChatTarget)return;
- let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,myEmail=auth.currentUser?auth.currentUser.email:"Admin Owner",chatId=getChatId(myId,curChatTarget.uid);
- db.collection("chats").add({chatId,from:myId,fromEmail:myEmail,to:curChatTarget.uid,toName:curChatTarget.name,msg,created:firebase.firestore.FieldValue.serverTimestamp()}).then(()=>{input.value="";db.collection("typing").doc(chatId).set({[myId]:{typing:false}},{merge:true})})
+
+function fileToBase(inp,imgId,key){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=e=>{ document.getElementById(imgId).src=e.target.result; localStorage.setItem(key,e.target.result); };
+  r.readAsDataURL(f);
 }
-async function toggleVoice(){
- let btn=voiceBtn,status=voiceStatus;
- if(!isRecording){
-  try{
-   let stream=await navigator.mediaDevices.getUserMedia({audio:true});
-   mediaRecorder=new MediaRecorder(stream);audioChunks=[];mediaRecorder.ondataavailable=e=>audioChunks.push(e.data);
-   mediaRecorder.onstop=async ()=>{
-    let blob=new Blob(audioChunks,{type:'audio/webm'});let reader=new FileReader();
-    reader.onloadend=()=>{
-     let base64=reader.result;
-     let myId=auth.currentUser?auth.currentUser.uid:ADMIN_UID,myEmail=auth.currentUser?auth.currentUser.email:"Admin Owner",chatId=getChatId(myId,curChatTarget.uid);
-     db.collection("chats").add({chatId,from:myId,fromEmail:myEmail,to:curChatTarget.uid,toName:curChatTarget.name,audio:base64,msg:"🎤 Voice note",created:firebase.firestore.FieldValue.serverTimestamp()});
-    };reader.readAsDataURL(blob);
-   };
-   mediaRecorder.start();isRecording=true;btn.innerText="⏹️";btn.className="bg-red-500 text-white px-3 py-3 rounded-full text-sm";status.classList.remove('hidden');
-  }catch(e){alert("Microphone needed for voice notes - allow mic");}
- }else{
-  mediaRecorder.stop();isRecording=false;voiceBtn.innerText="🎤";voiceBtn.className="bg-zinc-200 px-3 py-3 rounded-full text-sm";voiceStatus.classList.add('hidden');
-  mediaRecorder.stream.getTracks().forEach(t=>t.stop());
- }
+function togglePass(){
+  let p=document.getElementById('adminPass'); let eye=document.getElementById('eyeIcon');
+  p.type = p.type==='password'?'text':'password'; eye.className = p.type==='password'?'fas fa-eye':'fas fa-eye-slash';
 }
-function clearAllChats(){if(!isAdmin){alert("Admin only");return}if(!confirm("Delete all?"))return;db.collection("chats").get().then(s=>{s.forEach(d=>d.ref.delete());alert("Cleared")})}
-auth.onAuthStateChanged(u=>{updateUI();if(u){setInterval(()=>setOnline(u.uid),30000)}});
-updateUI();
+function distKm(a,b,c,d){const R=6371,dLat=(c-a)*Math.PI/180,dLon=(d-b)*Math.PI/180,aa=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;return R*2*Math.atan2(Math.sqrt(aa),Math.sqrt(1-aa));}
+
+function updatePresence(){
+  if(!db) return;
+  let userId = (myTechProfile&&myTechProfile.email) || (myClientInfo&&myClientInfo.phone) || 'guest_'+Math.random().toString(36).slice(2,6);
+  let name = (myTechProfile&&myTechProfile.name) || (myClientInfo&&myClientInfo.name) || 'Visitor';
+  let role = myTechProfile?'tech': myClientInfo?'client':'visitor';
+  db.ref('presence/'+userId.replace(/[.@]/g,'_')).set({name, role, lastSeen: Date.now(), online:true, photo:(myTechProfile&&myTechProfile.photo)||(myClientInfo&&myClientInfo.photo)||''});
+  db.ref('presence/'+userId.replace(/[.@]/g,'_')).onDisconnect().update({online:false, lastSeen:Date.now()});
+  document.getElementById('onlineStatus').classList.remove('hidden');
+  document.getElementById('lastSeenTxt').innerText='Last seen now';
+  let dot=document.getElementById('myOnlineDot'); if(dot) dot.classList.remove('hidden');
+  if(myTechProfile){ myTechProfile.lastSeen=Date.now(); myTechProfile.online=true; localStorage.setItem('myTechV36',JSON.stringify(myTechProfile)); if(db&&myTechProfile.email) db.ref('techs/'+myTechProfile.email.replace(/[.@]/g,'_')).update({online:true,lastSeen:Date.now()}); }
+}
+
+function renderHome(){
+  let techs=[]; if(myTechProfile && myTechProfile.approved) techs.push(myTechProfile);
+  if(!db){ doRender(techs); return; }
+  db.ref('techs').once('value',snap=>{
+    let fb=[]; snap.forEach(ch=>{ let v=ch.val(); if(v.approved) fb.push(v); });
+    let map={}; [...techs,...fb].forEach(t=>{ if(t&&t.email) map[t.email]=t; });
+    let merged=Object.values(map);
+    if(myClientLoc) merged.forEach(t=>{ if(t.lat) t.dist=distKm(myClientLoc.lat,myClientLoc.lng,t.lat,t.lng); });
+    if(myClientLoc) merged.sort((a,b)=>(a.dist||999)-(b.dist||999));
+    if(filter==='available') merged=merged.filter(t=>t.status==='available');
+    if(filter==='booked') merged=merged.filter(t=>t.status==='booked');
+    if(filter==='near'&&myClientLoc) merged=merged.filter(t=>t.dist<8);
+    doRender(merged);
+  });
+}
+
+function doRender(list){
+  const grid=document.getElementById('techGrid'); const empty=document.getElementById('emptyState');
+  if(!list||list.length===0){ empty.classList.remove('hidden'); grid.innerHTML=''; return; }
+  empty.classList.add('hidden');
+  grid.innerHTML=list.map(t=>{
+    let reviews = t.avgStars?`⭐ ${t.avgStars.toFixed(1)} (${t.reviewCount||0})`:'No reviews yet';
+    let onlineBadge = t.online?'<span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">🟢 Online</span>':`<span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Last seen ${t.lastSeen? new Date(t.lastSeen).toLocaleTimeString() : 'offline'}</span>`;
+    let bookedBadge = t.status==='booked'?'<div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow">🔴 BOOKED</div>':'';
+    return `<div class="bg-white rounded-2xl overflow-hidden shadow-sm border relative">
+      ${bookedBadge}
+      <div class="p-3 flex gap-3">
+        <div class="relative flex-shrink-0"><img src="${t.photo}" class="w-16 h-16 rounded-full object-cover border-2 ${t.status==='available'?'border-green-400':'border-red-400'}"><div class="${t.online?'online-dot':''}" style="${t.online?'':'display:none'}"></div></div>
+        <div class="flex-1 min-w-0">
+          <b class="text-sm truncate block">${t.name}</b>
+          <p class="text-[11px] text-gray-500 truncate">${t.email} • ${t.phone||''}</p>
+          <div class="flex flex-wrap gap-1 mt-1 items-center">${t.status==='available'?'<span class="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700">🟢 Available</span>':'<span class="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-700">🔴 BOOKED - Others see this</span>'}${t.dist!=null?`<span class="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">📍 ${t.dist.toFixed(1)}km</span>`:''} ${onlineBadge} <span class="text-[10px] bg-yellow-100 px-2 py-0.5 rounded-full">${reviews}</span></div>
+        </div>
+      </div>
+      <p class="px-3 text-[11px] text-gray-600">${t.bio||''} • ${t.area||'Eldoret'}</p>
+      <div class="grid grid-cols-4 gap-1 p-2">${(t.portfolio||[]).map(p=>`<img src="${p}" class="h-20 w-full object-cover rounded-xl border cursor-pointer" onclick="openMap(${t.lat},${t.lng})">`).join('')}</div>
+      <div class="p-2 flex gap-1.5 flex-wrap">
+        <button ${t.status==='booked'?'disabled':''} onclick="openBook('${t.email}')" class="flex-1 min-w-[80px] ${t.status==='available'?'bg-pink-600 text-white':'bg-gray-300 text-gray-500'} py-2.5 rounded-full text-xs font-bold">${t.status==='booked'?'BOOKED':'Book Now'}</button>
+        <button onclick="openReview('${t.email}','${t.name}')" class="bg-yellow-400 px-3 py-2.5 rounded-full text-xs font-bold">⭐ Review</button>
+        <a href="https://wa.me/${(t.phone||'').replace(/\D/g,'')}" target="_blank" class="bg-green-500 text-white w-9 h-9 rounded-full flex items-center justify-center"><i class="fab fa-whatsapp text-sm"></i></a>
+        <button onclick="showTab('chat')" class="bg-gray-100 w-9 h-9 rounded-full"><i class="fas fa-comments text-xs"></i></button>
+        <button onclick="openMap(${t.lat},${t.lng})" class="bg-gray-100 w-9 h-9 rounded-full"><i class="fas fa-location-dot text-xs"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f){ filter=f; ['all','available','booked','near'].forEach(x=>{ let el=document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)); if(el) el.className='bg-gray-100 px-4 py-2 rounded-full text-xs'; }); let act=document.getElementById('f'+f.charAt(0).toUpperCase()+f.slice(1)); if(act) act.className='bg-pink-600 text-white px-4 py-2 rounded-full text-xs font-bold'; renderHome(); }
+
+function getClientLoc(){
+  if(!navigator.geolocation){toast('GPS not supported','err');return;}
+  document.getElementById('locLabel').innerText='Locating...';
+  navigator.geolocation.getCurrentPosition(pos=>{
+    myClientLoc={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:pos.coords.accuracy};
+    localStorage.setItem('clientLoc',JSON.stringify(myClientLoc));
+    document.getElementById('locLabel').innerText='📍 '+myClientLoc.lat.toFixed(3);
+    let cliLocInput=document.getElementById('cLocation'); if(cliLocInput) cliLocInput.value=myClientLoc.lat.toFixed(5)+','+myClientLoc.lng.toFixed(5);
+    toast('📍 GPS Locked! '+Math.round(pos.coords.accuracy)+'m','ok'); setFilter('near');
+  },err=>{
+    document.getElementById('locLabel').innerText='GPS Failed';
+    let area=prompt('GPS failed. Enter area manually (CBD, Annex):'); if(area){ myClientLoc={lat:-0.5165,lng:35.2698,manual:area}; localStorage.setItem('clientLoc',JSON.stringify(myClientLoc)); document.getElementById('locLabel').innerText='📍 '+area; renderHome(); }
+  },{enableHighAccuracy:true,timeout:12000});
+}
+function updateMyLocation(){ if(!navigator.geolocation){toast('GPS not supported','err');return;} navigator.geolocation.getCurrentPosition(pos=>{ if(!myTechProfile) myTechProfile={}; myTechProfile.lat=pos.coords.latitude; myTechProfile.lng=pos.coords.longitude; localStorage.setItem('myTechV36',JSON.stringify(myTechProfile)); if(db&&myTechProfile.email) db.ref('techs/'+myTechProfile.email.replace(/[.@]/g,'_')).update({lat:pos.coords.latitude,lng:pos.coords.longitude}); toast('📍 Location updated','ok'); renderHome(); }); }
+function openMap(lat,lng){ if(!lat||!lng){toast('No location','err');return;} window.open(`https://www.google.com/maps?q=${lat},${lng}&z=16`,'_blank'); }
+function toggleTechBar(){ let on=document.getElementById('isTech').checked; document.getElementById('techBar').classList.toggle('hidden',!on); document.getElementById('techLiveHint').classList.toggle('hidden',!on); if(on&&!myTechProfile) showTab('profile'); updatePresence(); }
+function updateMyStatus(){ let s=document.getElementById('statusSel').value; if(!myTechProfile) return; myTechProfile.status=s; localStorage.setItem('myTechV36',JSON.stringify(myTechProfile)); if(db&&myTechProfile.email) db.ref('techs/'+myTechProfile.email.replace(/[.@]/g,'_')).update({status:s}); toast('Status: '+s+' - BOOKED badge will show to others if booked','ok'); renderHome(); }
+
+function saveProfile(){
+  let name=document.getElementById('inpName').value.trim(); let email=document.getElementById('inpEmail').value.trim(); let phone=document.getElementById('inpPhone').value.trim(); let area=document.getElementById('inpArea').value.trim(); let bio=document.getElementById('inpBio').value.trim();
+  if(!name||!email||!phone){toast('Fill name, email, phone','err');return;}
+  let photo=localStorage.getItem('profB64')||document.getElementById('profImg').src;
+  let portfolio=[localStorage.getItem('samp1')||'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=300',localStorage.getItem('samp2')||'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=300',localStorage.getItem('samp3')||'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300',localStorage.getItem('samp4')||'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=300'];
+  myTechProfile={id:'tech_'+email.replace(/[.@]/g,'_'),name,email,phone,area,bio,photo,portfolio,status:'available',lat:myClientLoc?myClientLoc.lat:-0.5165,lng:myClientLoc?myClientLoc.lng:35.2698,approved:false,online:true,lastSeen:Date.now(),avgStars:0,reviewCount:0};
+  localStorage.setItem('myTechV36',JSON.stringify(myTechProfile));
+  if(db) db.ref('techs/'+email.replace(/[.@]/g,'_')).set(myTechProfile);
+  toast('✅ Submitted! Wait admin approval in Admin tab. Then you go live with BOOKED button','ok');
+  showTab('home');
+}
+function saveClient(){
+  let name=document.getElementById('cliName').value.trim()||document.getElementById('cName').value.trim();
+  let phone=document.getElementById('cliPhone').value.trim();
+  let loc=document.getElementById('cliLoc').value.trim();
+  let date=document.getElementById('cliDate').value;
+  let photo=localStorage.getItem('cliB64')||document.getElementById('cliImg').src;
+  if(!name||!phone){toast('Fill client name & phone','err');return;}
+  myClientInfo={name,phone,location:loc||(myClientLoc?myClientLoc.lat+','+myClientLoc.lng:'Eldoret'),date:date||new Date().toISOString().split('T')[0],photo,online:true,lastSeen:Date.now()};
+  localStorage.setItem('myClientV36',JSON.stringify(myClientInfo));
+  toast('✅ Client saved - '+name+' with photo, location, date','ok');
+  if(db) db.ref('clients/'+phone.replace(/\D/g,'')).set(myClientInfo);
+}
+
+function openBook(email){
+  if(db) db.ref('techs/'+email.replace(/[.@]/g,'_')).once('value',s=>{
+    selectedTech=s.val()||{email,name:email}; document.getElementById('bmName').innerText=selectedTech.name; document.getElementById('bmEmail').innerText=selectedTech.email+' • '+selectedTech.phone;
+    if(myClientInfo){ document.getElementById('cName').value=myClientInfo.name; document.getElementById('cPhone').value=myClientInfo.phone; document.getElementById('cImgPrev').src=myClientInfo.photo; document.getElementById('cLocation').value=myClientInfo.location; document.getElementById('cDate').value=myClientInfo.date; }
+    if(myClientLoc) document.getElementById('cLocation').value=myClientLoc.lat.toFixed(5)+','+myClientLoc.lng.toFixed(5);
+    document.getElementById('bookModal').classList.remove('hidden');
+  });
+}
+function closeBook(){ document.getElementById('bookModal').classList.add('hidden'); }
+function confirmBook(){
+  let cn=document.getElementById('cName').value||'Client'; let cp=document.getElementById('cPhone').value||''; let svc=document.getElementById('cService').value;
+  let cloc=document.getElementById('cLocation').value|| (myClientLoc?myClientLoc.lat+','+myClientLoc.lng:'Eldoret');
+  let cdate=document.getElementById('cDate').value||new Date().toISOString().split('T')[0];
+  let ctime=document.getElementById('cTime').value||'';
+  let cphoto=localStorage.getItem('bookCliB64')||localStorage.getItem('cliB64')||'https://via.placeholder.com/80?text=Client';
+  if(!cp){toast('Enter phone','err');return;}
+  let booking={techEmail:selectedTech.email,techName:selectedTech.name,clientName:cn,clientPhone:cp,clientPhoto:cphoto,clientLocation:cloc,clientDate:cdate,clientTime:ctime,service:svc,time:Date.now(),status:'booked'};
+  if(db){ db.ref('bookings').push(booking); db.ref('techs/'+selectedTech.email.replace(/[.@]/g,'_')).update({status:'booked'}); db.ref('chats/general').push({user:cn,text:'🔔 BOOKED: '+cn+' ('+cp+') booked '+selectedTech.name+' for '+svc+' on '+cdate+' at '+cloc,clientPhoto:cphoto,time:Date.now(),type:'booking'}); }
+  if(myTechProfile&&myTechProfile.email===selectedTech.email){ myTechProfile.status='booked'; localStorage.setItem('myTechV36',JSON.stringify(myTechProfile)); }
+  toast('🔔 Booked! '+cn+' - BOOKED badge now visible to everyone','ok');
+  closeBook(); showTab('chat');
+  if(Notification&&Notification.permission==='granted'){ new Notification('New Booking! '+cn+' booked '+selectedTech.name,{body:svc+' on '+cdate+' at '+cloc,icon:cphoto}); }
+  if(navigator.vibrate) navigator.vibrate([200,100,200]);
+}
+
+function openReview(email,name){ selectedTech={email}; document.getElementById('rvName').innerText=name||email; document.getElementById('reviewModal').classList.remove('hidden'); }
+function setStars(n){ starVal=n; document.querySelectorAll('#starBox span').forEach((s,i)=>{ s.innerText=i<n?'★':'☆'; s.className=i<n?'text-yellow-400 cursor-pointer':'text-gray-300 cursor-pointer'; }); }
+function submitReview(){
+  let txt=document.getElementById('rvText').value; if(starVal===0){toast('Select stars','err');return;}
+  if(db){
+    db.ref('reviews').push({techEmail:selectedTech.email,stars:starVal,text:txt,time:Date.now(),clientName:(myClientInfo&&myClientInfo.name)||'Client'});
+    db.ref('reviews').orderByChild('techEmail').equalTo(selectedTech.email).once('value',snap=>{ let total=0,count=0; snap.forEach(ch=>{ total+=ch.val().stars; count++; }); let avg=count?total/count:starVal; db.ref('techs/'+selectedTech.email.replace(/[.@]/g,'_')).update({avgStars:avg,reviewCount:count}); });
+  }
+  toast('⭐ Review '+starVal+' saved! Shows on tech profile','ok'); document.getElementById('reviewModal').classList.add('hidden');
+}
+
+function loadChat(){
+  let box=document.getElementById('chatBox'); if(!box) return;
+  if(db){
+    db.ref('chats/general').limitToLast(60).on('value',snap=>{
+      let isAtBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 100;
+      let wasEmpty = box.innerHTML.trim()==='';
+      let html=''; let count=0;
+      snap.forEach(ch=>{
+        let m=ch.val(); count++;
+        let localName = myTechProfile?myTechProfile.name: (myClientInfo?myClientInfo.name:null);
+        let isMe = localName && m.user===localName;
+        let timeStr = m.time? new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+        let photo = m.clientPhoto||m.photo||'https://via.placeholder.com/40?text=U';
+        html+=`<div class="flex ${isMe?'justify-end':'justify-start'} gap-2 items-end">
+          ${!isMe?`<img src="${photo}" class="w-7 h-7 rounded-full object-cover flex-shrink-0">`:''}
+          <div class="max-w-[75%] px-3 py-2 rounded-2xl text-[13px] shadow-sm ${isMe?'msg-me rounded-br-sm':'msg-other rounded-bl-sm'}">
+            <b class="text-[10px] opacity-70 block ${isMe?'text-pink-100':''}">${m.user} ${m.type==='booking'?'🔴 BOOKED':''} • ${timeStr}</b>
+            <span>${m.text}</span>
+            ${m.voice?`<audio controls src="${m.voice}" class="w-40 mt-1 rounded"></audio>`:''}
+          </div>
+          ${isMe?`<img src="${(myTechProfile&&myTechProfile.photo)||(myClientInfo&&myClientInfo.photo)||'https://via.placeholder.com/40?text=Me'}" class="w-7 h-7 rounded-full object-cover flex-shrink-0">`:''}
+        </div>`;
+      });
+      box.innerHTML=html;
+      if(isAtBottom || wasEmpty) box.scrollTop=box.scrollHeight;
+      if(count>lastChatCount && lastChatCount!==0){
+        let last = Object.values(snap.val()||{}).pop();
+        if(last && last.user!==(myTechProfile?myTechProfile.name:myClientInfo?myClientInfo.name:'')){
+          toast('💬 New message from '+last.user+': '+last.text.slice(0,30),'ok');
+          if(Notification&&Notification.permission==='granted'){ new Notification('New message: '+last.user,{body:last.text,icon:last.clientPhoto||''}); }
+          if(navigator.vibrate) navigator.vibrate([100,50,100]);
+          let badge=document.getElementById('chatBadge'); if(badge && document.getElementById('tab-chat').classList.contains('hidden')){ badge.classList.remove('hidden'); badge.innerText= (parseInt(badge.innerText)||0)+1; }
+        }
+      }
+      lastChatCount=count;
+    });
+    db.ref('typing').on('value',s=>{ let v=s.val(); if(v&&Date.now()-v.time<3000 && v.user!== (myTechProfile?myTechProfile.name:myClientInfo?myClientInfo.name:'')){ document.getElementById('typingTxt').classList.remove('hidden'); document.getElementById('typingTxt').innerText=v.user+' typing...'; setTimeout(()=>document.getElementById('typingTxt').classList.add('hidden'),3000); } });
+    db.ref('presence').on('value',snap=>{ let online=[]; snap.forEach(ch=>{ let p=ch.val(); if(p.online) online.push(p.name); }); document.getElementById('onlineList').innerHTML=online.length? '🟢 Online: '+online.slice(0,3).join(', ')+(online.length>3?' +'+(online.length-3):'') : ''; if(document.getElementById('adminOnline')) document.getElementById('adminOnline').innerHTML=online.map(n=>`<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-[10px]">🟢 ${n}</span>`).join(' '); });
+  }
+}
+function markRead(){ let b=document.getElementById('chatBadge'); if(b){ b.classList.add('hidden'); b.innerText='0'; } }
+function sendChat(){
+  let t=document.getElementById('chatInput').value.trim(); if(!t) return;
+  let u=myTechProfile?myTechProfile.name: myClientInfo?myClientInfo.name: (document.getElementById('cliName').value||'Client');
+  let photo = myTechProfile?myTechProfile.photo: myClientInfo?myClientInfo.photo: localStorage.getItem('cliB64')||'';
+  if(db) db.ref('chats/general').push({user:u,text:t,clientPhoto:photo,photo:photo,time:Date.now()});
+  document.getElementById('chatInput').value='';
+}
+function onTyping(){ if(db) db.ref('typing').set({user: myTechProfile?myTechProfile.name: myClientInfo?myClientInfo.name:'Client', time:Date.now()}); }
+function toggleVoice(){
+  if(mediaRecorder&&mediaRecorder.state==='recording'){ mediaRecorder.stop(); document.getElementById('voiceBtn').innerHTML='<i class="fas fa-microphone text-pink-600"></i>'; return; }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    mediaRecorder=new MediaRecorder(stream); let chunks=[]; mediaRecorder.ondataavailable=e=>chunks.push(e.data);
+    mediaRecorder.onstop=()=>{ let b=new Blob(chunks,{type:'audio/webm'}); let r=new FileReader(); r.onload=e=>{ if(db){ let u=myTechProfile?myTechProfile.name:myClientInfo?myClientInfo.name:'Client'; let photo=myTechProfile?myTechProfile.photo:myClientInfo?myClientInfo.photo:''; db.ref('chats/general').push({user:u,text:'🎤 Voice note',voice:e.target.result,clientPhoto:photo,time:Date.now()}); } }; r.readAsDataURL(b); };
+    mediaRecorder.start(); document.getElementById('voiceBtn').innerHTML='<i class="fas fa-stop text-red-600 animate-pulse"></i>'; setTimeout(()=>{ if(mediaRecorder.state==='recording'){ mediaRecorder.stop(); document.getElementById('voiceBtn').innerHTML='<i class="fas fa-microphone text-pink-600"></i>'; } },6000);
+  }).catch(()=>toast('Allow mic','err'));
+}
+
+function adminLogin(){
+  let p=document.getElementById('adminPass').value; if(p!=="EldoretAdmin2026!"){ toast('Wrong password - hidden secure','err'); return; }
+  localStorage.setItem('adminOK','1'); document.getElementById('adminLogin').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); loadAdmin();
+}
+function checkAdmin(){ if(localStorage.getItem('adminOK')==='1'){ document.getElementById('adminLogin').classList.add('hidden'); document.getElementById('adminPanel').classList.remove('hidden'); loadAdmin(); } }
+function adminLogout(){ localStorage.removeItem('adminOK'); document.getElementById('adminPanel').classList.add('hidden'); document.getElementById('adminLogin').classList.remove('hidden'); }
+function loadAdmin(){
+  if(!db) return;
+  db.ref('techs').once('value',s=>{
+    let pending='',approved='';
+    s.forEach(ch=>{ let t=ch.val();
+      if(!t.approved){
+        pending+=`<div class="bg-orange-50 border border-orange-200 p-2 rounded-xl text-xs flex gap-2"><img src="${t.photo}" class="w-10 h-10 rounded-full object-cover"><div class="flex-1"><b>${t.name}</b><p class="text-[10px]">${t.email} • ${t.phone}</p><p class="text-[10px]">${t.area} • ${t.bio||''}</p><div class="flex gap-1 mt-1"><button onclick="approveTech('${t.email}')" class="bg-green-600 text-white px-3 py-1 rounded-full text-[10px]">✅ Approve</button><button onclick="rejectTech('${t.email}')" class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px]">❌ Reject</button></div></div></div>`;
+      } else {
+        approved+=`<div class="bg-gray-50 p-2 rounded-xl text-xs flex justify-between"><div><b>${t.name}</b> • ${t.email}<br><span class="${t.online?'text-green-600':'text-gray-400'} text-[10px]">${t.online?'🟢 Online':'⚫ Offline'} Last: ${t.lastSeen?new Date(t.lastSeen).toLocaleString():''} • Status: ${t.status}</span></div><button onclick="rejectTech('${t.email}')" class="text-[10px] bg-red-100 px-2 py-1 rounded-full">Remove</button></div>`;
+      }
+    });
+    document.getElementById('adminPending').innerHTML=pending||'No pending';
+    document.getElementById('adminTechs').innerHTML=approved||'No approved';
+  });
+  db.ref('bookings').limitToLast(20).on('value',s=>{
+    let h=''; s.forEach(ch=>{ let b=ch.val(); h=`<div class="bg-purple-50 p-2 rounded-xl text-xs flex gap-2"><img src="${b.clientPhoto||'https://via.placeholder.com/40?text=C'}" class="w-10 h-10 rounded-full object-cover"><div><b>${b.clientName}</b> booked <b>${b.techName}</b><br>📍 ${b.clientLocation} • 📅 ${b.clientDate} ${b.clientTime||''}<br>📞 ${b.clientPhone} • ${b.service}<br><span class="text-[9px] text-gray-500">${new Date(b.time).toLocaleString()}</span><br><span class="bg-red-600 text-white px-2 py-0.5 rounded-full text-[9px]">BOOKED visible to all</span></div></div>`+h; });
+    document.getElementById('adminBookings').innerHTML=h||'No bookings';
+  });
+  db.ref('reviews').limitToLast(20).on('value',s=>{ let h=''; s.forEach(ch=>{ let r=ch.val(); h=`<div class="bg-yellow-50 p-2 rounded-xl text-xs">⭐ ${r.stars} for ${r.techEmail} by ${r.clientName||'Client'}<br>${r.text||''}<br><span class="text-[9px]">${new Date(r.time).toLocaleString()}</span></div>`+h; }); document.getElementById('adminReviews').innerHTML=h||'No reviews'; });
+  db.ref('chats/general').limitToLast(20).on('value',s=>{ let h=''; s.forEach(ch=>{ let m=ch.val(); h=`<div class="text-[11px]"><b>${m.user}:</b> ${m.text.slice(0,50)} ${m.voice?'🎤':''}</div>`+h; }); let el=document.getElementById('adminChat'); if(el) el.innerHTML=h; });
+}
+function approveTech(email){ if(db) db.ref('techs/'+email.replace(/[.@]/g,'_')).update({approved:true}); toast('✅ Approved '+email+' - now shows on Home with BOOKED button','ok'); loadAdmin(); renderHome(); }
+function rejectTech(email){ if(confirm('Reject/remove '+email+'?')){ if(db) db.ref('techs/'+email.replace(/[.@]/g,'_')).remove(); toast('Removed','ok'); loadAdmin(); renderHome(); } }
+
+function toast(msg,type){
+  let d=document.createElement('div'); d.className=`px-4 py-3 rounded-xl text-sm font-bold text-white max-w-sm shadow-lg pointer-events-auto ${type==='err'?'bg-red-600':'bg-green-600'}`; d.innerText=msg; document.getElementById('notifBox').appendChild(d); setTimeout(()=>d.remove(),4000);
+}
+renderHome(); updatePresence();
+if('Notification' in window && Notification.permission!=='granted') Notification.requestPermission();
+setInterval(updatePresence,30000);
 </script>
 </body>
 </html>
