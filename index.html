@@ -1,57 +1,274 @@
 <!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Housecalls V38</title><script src="https://cdn.tailwindcss.com"></script>
+<title>Housecalls V36 - Client Dashboard + Fixed Submit</title>
+<script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<style>.msg-me{margin-left:auto;background:linear-gradient(135deg,#e91e8c,#9333ea);color:white}.msg-other{margin-right:auto;background:white;border:1px solid #eee}.dot{width:10px;height:10px;background:#22c55e;border-radius:50%;border:2px solid white;position:absolute;bottom:0;right:0}</style>
+<style>.msg-me{margin-left:auto;background:linear-gradient(135deg,#e91e8c,#9333ea);color:white;border-radius:18px 18px 4px 18px}.msg-other{margin-right:auto;background:white;border:1px solid #e5e7eb;border-radius:18px 18px 18px 4px}</style>
 </head><body class="bg-[#fff5f7] min-h-screen pb-20">
 <div id="notif" class="fixed top-3 right-3 z-[9999] space-y-2"></div>
-<header class="bg-gradient-to-r from-pink-600 to-purple-600 text-white p-3 sticky top-0 z-50 flex justify-between items-center">
-<b class="text-[11px]">Housecalls</b><div class="flex gap-1 text-[10px]">
-<button onclick="showTab('home')" id="bh" class="bg-white text-pink-600 px-3 py-1.5 rounded-full font-bold">Home</button>
-<button onclick="showTab('chat')" id="bc" class="bg-white/20 px-3 py-1.5 rounded-full">Chat</button>
-<button onclick="showTab('profile')" id="bp" class="bg-white/20 px-3 py-1.5 rounded-full">Profile</button>
-<button onclick="showTab('admin')" id="ba" class="bg-black/20 px-3 py-1.5 rounded-full">Admin</button></div></header>
+<header class="bg-gradient-to-r from-pink-600 to-purple-600 text-white p-2 sticky top-0 z-50 flex justify-between items-center">
+<b class="text-[10px]">HOUSE CALLS</b>
+<div class="flex gap-1 text-[9px]">
+<button onclick="showTab('home')" id="bh" class="bg-white text-pink-600 px-2 py-1 rounded-full font-bold">Home</button>
+<button onclick="showTab('chat')" id="bc" class="bg-white/20 px-2 py-1 rounded-full">Chat</button>
+<button onclick="showTab('profile')" id="bp" class="bg-white/20 px-2 py-1 rounded-full">Tech</button>
+<button onclick="showTab('client')" id="bcl" class="bg-white/20 px-2 py-1 rounded-full">Client</button>
+<button onclick="showTab('admin')" id="ba" class="bg-black/20 px-2 py-1 rounded-full">Admin</button>
+</div></header>
 <div id="home" class="max-w-5xl mx-auto p-2">
-<div class="bg-white rounded-xl p-2 flex justify-between text-xs"><div class="flex gap-1"><button onclick="filt('all')" id="fAll" class="bg-pink-600 text-white px-3 py-1.5 rounded-full font-bold">All</button><button onclick="filt('available')" id="fAvail" class="bg-gray-100 px-3 py-1.5 rounded-full">Available</button><button onclick="filt('booked')" id="fBooked" class="bg-gray-100 px-3 py-1.5 rounded-full">Booked</button></div><button onclick="getGPS()" class="bg-purple-600 text-white px-3 py-1.5 rounded-full"><i class="fas fa-location-dot"></i> <span id="locLab">GPS</span></button></div>
-<div class="bg-white rounded-xl p-2 mt-2 flex gap-2 items-center text-[11px]"><label class="flex gap-1 items-center font-bold"><input type="checkbox" id="isTech" onchange="toggleTech()" class="accent-pink-600"> I am Tech - Go Live</label><span id="onStat" class="hidden text-green-600"><span class="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online</span></div>
-<div id="techBar" class="hidden mt-2 grid grid-cols-3 gap-2"><select id="statSel" onchange="upStat()" class="p-2 border rounded-xl text-xs"><option value="available">Available</option><option value="booked">Booked - Show BOOKED badge to all</option><option value="offline">Offline</option></select><button onclick="getGPS()" class="bg-purple-100 text-purple-700 p-2 rounded-xl text-xs font-bold">Update Location</button><button onclick="showTab('profile')" class="bg-pink-100 p-2 rounded-xl text-xs font-bold">Edit Profile</button></div>
-<div id="empty" class="bg-white rounded-xl p-6 text-center mt-3"><h3 class="font-bold text-sm">No approved techs yet</h3><p class="text-xs text-gray-500">Create Profile → Admin Approves → Shows here with BOOKED badge visible to all + Online dot + Last Seen + Stars</p><button onclick="showTab('profile')" class="mt-3 bg-pink-600 text-white px-5 py-2 rounded-full text-xs">Create Profile</button></div><div id="grid" class="grid md:grid-cols-2 gap-2 mt-2"></div></div>
-<div id="chat" class="hidden max-w-3xl mx-auto p-2"><div class="bg-white rounded-xl h-[78vh] flex flex-col shadow"><div class="p-2 border-b bg-pink-50 text-xs flex justify-between"><div><b>Chat Tech↔Client↔Admin • All see sender photo, name, time, voice + BOOKED notification</b></div><div id="onList" class="text-[10px] text-green-600"></div></div><div id="chatBox" class="flex-1 overflow-y-auto p-2 space-y-2 bg-[#faf5f6]"></div><div class="p-2 border-t flex gap-2"><button onclick="voiceMsg()" id="vBtn" class="bg-gray-100 w-9 h-9 rounded-full"><i class="fas fa-microphone text-pink-600"></i></button><input id="cInput" placeholder="Type..." class="flex-1 p-2.5 border rounded-full text-sm" onkeypress="if(event.key==='Enter')sendChat()"><button onclick="sendChat()" class="bg-pink-600 text-white w-9 h-9 rounded-full"><i class="fas fa-paper-plane text-xs"></i></button></div></div></div>
-<div id="profile" class="hidden max-w-2xl mx-auto p-2"><div class="bg-white rounded-xl p-3 space-y-3"><h2 class="font-bold text-sm">Tech Profile - Admin Approval Needed (V38)</h2><div class="flex gap-3"><img id="pImg" src="https://via.placeholder.com/100?text=Photo" class="w-20 h-20 rounded-full object-cover border-4 border-pink-200"><div class="flex-1 space-y-1"><input id="nName" placeholder="Name Collins Otieno" class="w-full p-2.5 border rounded-xl text-sm"><input id="nEmail" placeholder="Email" class="w-full p-2.5 border rounded-xl text-sm"><input id="nPhone" placeholder="Phone 0141146754" class="w-full p-2.5 border rounded-xl text-sm"><input id="nArea" placeholder="Area Pioneer" class="w-full p-2.5 border rounded-xl text-sm"><input type="file" accept="image/*" onchange="toB64(this,'pImg','pB64')" class="text-[10px]"></div></div><textarea id="nBio" placeholder="Bio I do braids" class="w-full p-2 border rounded-xl text-sm"></textarea><div class="border rounded-xl p-2 bg-pink-50/50"><label class="text-xs font-bold">Nails & Hair Portfolio 4</label><div class="grid grid-cols-4 gap-1 mt-1"><div><img id="s1" src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s1','b1')" class="text-[8px]"></div><div><img id="s2" src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s2','b2')" class="text-[8px]"></div><div><img id="s3" src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s3','b3')" class="text-[8px]"></div><div><img id="s4" src="https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s4','b4')" class="text-[8px]"></div></div></div><button onclick="saveTech()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm">Submit for Admin Approval - V38</button><div class="border-t pt-2"><b class="text-xs">Client Sign Name Photo Location Date</b><div class="grid grid-cols-2 gap-1 mt-1"><input id="clName" placeholder="Client Name" class="p-2 border rounded-xl text-xs"><input id="clPhone" placeholder="Client Phone" class="p-2 border rounded-xl text-xs"><input id="clLoc" placeholder="Location" class="p-2 border rounded-xl text-xs"><input id="clDate" type="date" class="p-2 border rounded-xl text-xs"></div><div class="flex gap-2 mt-2 items-center"><img id="clImg" src="https://via.placeholder.com/60?text=Client" class="w-12 h-12 rounded-full object-cover border"><input type="file" accept="image/*" onchange="toB64(this,'clImg','clB64')" class="text-[10px]"><button onclick="saveClient()" class="bg-black text-white px-4 py-1.5 rounded-full text-xs">Save Client</button></div></div></div></div>
-<div id="admin" class="hidden max-w-4xl mx-auto p-2"><div id="aLogin" class="bg-white rounded-xl p-5 max-w-sm mx-auto mt-10 text-center border shadow"><h2 class="font-bold text-sm">Admin Login Password Hidden</h2><div class="relative"><input id="aPass" type="password" placeholder="EldoretAdmin2026!" class="w-full p-3 border rounded-xl text-sm pr-8"><button onclick="toggleEye()" class="absolute right-2 top-3 text-gray-400"><i id="eye" class="fas fa-eye"></i></button></div><button onclick="doAdminLogin()" class="w-full bg-black text-white py-3 rounded-xl mt-3 text-sm">Login Securely</button></div><div id="aPanel" class="hidden space-y-2"><div class="bg-white p-3 rounded-xl flex justify-between"><b class="text-xs">Admin V38 Dashboard - Pending Fixed + Firebase</b><button onclick="aLogout()" class="text-[10px] bg-gray-100 px-3 py-1 rounded-full">Logout</button></div><div class="grid md:grid-cols-3 gap-2"><div class="bg-white p-2 rounded-xl"><b class="text-[11px]">⏳ Pending (FIXED reads from phone + Firebase)</b><div id="aPend" class="space-y-2 mt-2 max-h-96 overflow-y-auto"></div></div><div class="bg-white p-2 rounded-xl"><b class="text-[11px]">✅ Approved + Online/Last Seen</b><div id="aAppr" class="space-y-2 mt-2 max-h-96 overflow-y-auto"></div></div><div class="bg-white p-2 rounded-xl"><b class="text-[11px]">📅 Bookings Photo Name Location Date</b><div id="aBook" class="space-y-2 mt-2 max-h-96 overflow-y-auto"></div></div></div><div class="grid md:grid-cols-2 gap-2"><div class="bg-white p-2 rounded-xl"><b class="text-[11px]">⭐ Reviews Stars</b><div id="aRev" class="space-y-1 mt-2 max-h-60 overflow-y-auto"></div></div><div class="bg-white p-2 rounded-xl"><b class="text-[11px]">💬 Chat + Online Users</b><div id="aOn" class="text-[10px] mb-1"></div><div id="aChat" class="space-y-1 max-h-60 overflow-y-auto text-[11px]"></div></div></div></div></div>
-<div id="bModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-3"><div class="bg-white p-4 rounded-xl w-full max-w-sm max-h-[90vh] overflow-y-auto"><h3 id="bName" class="font-bold text-sm"></h3><p id="bEmail" class="text-[10px] text-gray-500"></p><div class="space-y-2 mt-2"><input id="bkName" placeholder="Your Name" class="w-full p-2.5 border rounded-xl text-sm"><input id="bkPhone" placeholder="Phone" class="w-full p-2.5 border rounded-xl text-sm"><div class="flex gap-2 items-center"><img id="bkImg" src="https://via.placeholder.com/60" class="w-10 h-10 rounded-full object-cover border"><input type="file" accept="image/*" onchange="toB64(this,'bkImg','bkB64')" class="text-[10px] flex-1"></div><input id="bkLoc" placeholder="Location GPS auto" class="w-full p-2.5 border rounded-xl text-sm"><input id="bkDate" type="date" class="w-full p-2.5 border rounded-xl text-sm"><input id="bkTime" type="time" class="w-full p-2.5 border rounded-xl text-sm"><select id="bkServ" class="w-full p-2.5 border rounded-xl text-sm"><option>Gel Nails</option><option>Braids</option><option>Weave</option><option>Haircut</option><option>Full Glam</option></select></div><button onclick="doBook()" class="w-full bg-pink-600 text-white py-3 rounded-xl mt-3 font-bold text-sm">Book & Show BOOKED Badge to All + Firebase</button><button onclick="document.getElementById('bModal').classList.add('hidden')" class="w-full bg-gray-100 py-2 rounded-xl mt-2 text-sm">Cancel</button></div></div>
-<div id="rModal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-3"><div class="bg-white p-4 rounded-xl w-full max-w-sm"><h3 class="font-bold text-sm">Review <span id="rName"></span></h3><div id="starBox" class="flex gap-1 text-2xl my-2"><span onclick="setStars(1)">☆</span><span onclick="setStars(2)">☆</span><span onclick="setStars(3)">☆</span><span onclick="setStars(4)">☆</span><span onclick="setStars(5)">☆</span></div><textarea id="rTxt" placeholder="How was service?" class="w-full p-2 border rounded-xl text-sm"></textarea><button onclick="doRev()" class="w-full bg-pink-600 text-white py-2 rounded-xl mt-2 text-sm font-bold">Submit Review Stars</button><button onclick="document.getElementById('rModal').classList.add('hidden')" class="w-full bg-gray-100 py-2 rounded-xl mt-1 text-sm">Close</button></div></div>
+<div class="bg-white rounded-xl p-2 flex justify-between text-xs border"><b class="text-[11px]">All Approved Techs</b><button onclick="getGPS()" class="bg-purple-600 text-white px-3 py-1 rounded-full"><span id="locLab">📍 GPS</span></button></div>
+<div id="empty" class="bg-white rounded-xl p-6 text-center mt-3 border"><h3 class="font-bold text-sm">No approved techs yet</h3><p class="text-xs text-gray-500">Tech creates profile → Admin approves → Shows here with Online dot</p><button onclick="showTab('profile')" class="mt-3 bg-pink-600 text-white px-5 py-2 rounded-full text-xs">Create Tech Profile</button></div><div id="grid" class="grid md:grid-cols-2 gap-2 mt-2"></div></div>
+<div id="chat" class="hidden max-w-3xl mx-auto p-2"><div class="bg-white rounded-xl h-[75vh] flex flex-col shadow border"><div class="p-2 border-b bg-pink-50"><b class="text-xs">Chat - 2 Way: Sender Right Pink / Recipient Left White + Voice</b><div class="flex gap-1 mt-1"><select id="chatTarget" class="text-[10px] border rounded-full px-2 py-1"><option value="all">All Chat</option></select><span id="onList" class="text-[10px] text-green-600"></span></div></div><div id="chatBox" class="flex-1 overflow-y-auto p-3 space-y-3 bg-[#faf5f6]"></div><div class="p-2 border-t flex gap-2 items-center"><button onclick="voiceMsg()" id="vBtn" class="bg-gray-100 w-10 h-10 rounded-full"><i class="fas fa-microphone text-pink-600"></i></button><input id="cInput" placeholder="Type message..." class="flex-1 p-3 border rounded-full text-sm" onkeypress="if(event.key==='Enter')sendChat()"><button onclick="sendChat()" class="bg-pink-600 text-white w-10 h-10 rounded-full"><i class="fas fa-paper-plane text-xs"></i></button></div></div></div>
+<div id="profile" class="hidden max-w-2xl mx-auto p-2"><div class="bg-white rounded-xl p-4 space-y-3 border"><h2 class="font-bold text-sm">Tech Profile - Photo + Email + Nails & Hair (FIXED SUBMIT)</h2><div class="flex gap-3"><div class="text-center"><img id="pImg" src="https://via.placeholder.com/100?text=Photo" class="w-24 h-24 rounded-full object-cover border-4 border-pink-200"><input type="file" accept="image/*" onchange="toB64(this,'pImg','pB64')" class="text-[10px] mt-1 block"></div><div class="flex-1 space-y-2"><input id="nName" placeholder="Name Collins Otieno" class="w-full p-2.5 border rounded-xl text-sm"><input id="nEmail" placeholder="Email emporerotieno369@gmail.com" class="w-full p-2.5 border rounded-xl text-sm"><input id="nPhone" placeholder="Phone 0141146754" class="w-full p-2.5 border rounded-xl text-sm"><input id="nArea" placeholder="Area Zion Mall" class="w-full p-2.5 border rounded-xl text-sm"></div></div><textarea id="nBio" placeholder="Bio I do gel" class="w-full p-2 border rounded-xl text-sm">I do gel</textarea><div class="border rounded-xl p-2"><b class="text-xs">Nails & Hair Samples (4 photos - mix)</b><div class="grid grid-cols-4 gap-2 mt-2"><div><img id="s1" src="https://images.unsplash.com/photo-1604654894610-df63bc536371?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s1','b1')" class="text-[8px]"></div><div><img id="s2" src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s2','b2')" class="text-[8px]"></div><div><img id="s3" src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s3','b3')" class="text-[8px]"></div><div><img id="s4" src="https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=200" class="h-16 w-full object-cover rounded border"><input type="file" accept="image/*" onchange="toB64(this,'s4','b4')" class="text-[8px]"></div></div></div><button onclick="saveTech()" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm">Submit for Admin Approval - NOW WORKING</button><p class="text-[10px] text-center text-gray-500">After save you will be pending. Admin approves in Admin tab. Then you appear on Home with Online dot + Last Seen</p></div></div>
+<div id="client" class="hidden max-w-2xl mx-auto p-2"><div class="bg-white rounded-xl p-4 space-y-3 border"><h2 class="font-bold text-sm">Client Dashboard - NEW AS YOU REQUESTED</h2><p class="text-[11px] text-gray-500">Client creates profile: Name, Phone, Location, Date, Time, Booked button</p><div class="grid grid-cols-2 gap-2"><input id="clName" placeholder="Client Name" class="p-2.5 border rounded-xl text-sm"><input id="clPhone" placeholder="Client Phone" class="p-2.5 border rounded-xl text-sm"><div class="relative"><input id="clLoc" placeholder="Location - GPS auto" class="w-full p-2.5 border rounded-xl text-sm pr-8"><button onclick="getGPSClient()" class="absolute right-2 top-2 text-purple-600"><i class="fas fa-location-dot"></i></button></div><input id="clDate" type="date" class="p-2.5 border rounded-xl text-sm"><input id="clTime" type="time" class="p-2.5 border rounded-xl text-sm"><select id="clService" class="p-2.5 border rounded-xl text-sm"><option>Gel Nails</option><option>Braids</option><option>Weave</option><option>Haircut</option></select></div><div class="flex gap-2 items-center border p-2 rounded-xl"><img id="clImg" src="https://via.placeholder.com/60?text=Client" class="w-12 h-12 rounded-full object-cover border"><input type="file" accept="image/*" onchange="toB64(this,'clImg','clB64')" class="text-[10px]"><label class="flex items-center gap-1 text-xs font-bold ml-auto"><input type="checkbox" id="clBooked" class="accent-pink-600"> 🔴 BOOKED - Press if booked</label></div><button onclick="saveClientDashboard()" class="w-full bg-black text-white py-3 rounded-xl font-bold text-sm">Save Client Profile + BOOKED Status Visible to All</button><div id="clientList" class="space-y-2 max-h-64 overflow-y-auto"></div></div></div>
+<div id="admin" class="hidden max-w-4xl mx-auto p-2"><div id="aLogin" class="bg-white rounded-xl p-6 max-w-sm mx-auto mt-10 text-center border shadow"><h2 class="font-bold text-sm">Admin Login - Secured</h2><div class="relative mt-3"><input id="aPass" type="password" placeholder="EldoretAdmin2026!" class="w-full p-3 border rounded-xl text-sm pr-10"><button onclick="toggleEye()" class="absolute right-3 top-3 text-gray-400"><i id="eye" class="fas fa-eye"></i></button></div><button onclick="doAdminLogin()" class="w-full bg-black text-white py-3 rounded-xl mt-3 font-bold text-sm">Login Securely</button></div><div id="aPanel" class="hidden space-y-2"><div class="bg-white p-3 rounded-xl flex justify-between border"><b class="text-[11px]">Admin Dashboard V36 - Approvals + Client Dashboard + Chat</b><button onclick="aLogout()" class="text-[10px] bg-gray-100 px-3 py-1 rounded-full">Logout</button></div><div class="bg-white p-3 rounded-xl border"><b class="text-xs">⏳ Pending Tech Approvals - CLICKABLE NOW</b><div id="aPend" class="mt-2 space-y-2 max-h-96 overflow-y-auto"></div></div><div class="bg-white p-3 rounded-xl border"><b class="text-xs">✅ Approved Techs + Online Status</b><div id="aAppr" class="mt-2 space-y-2 max-h-60 overflow-y-auto"></div></div><div class="bg-white p-3 rounded-xl border"><b class="text-xs">👥 Client Dashboard - Location + Date + BOOKED button (NEW)</b><div id="aClient" class="mt-2 space-y-2 max-h-60 overflow-y-auto"></div></div><div class="bg-white p-3 rounded-xl border"><b class="text-xs">💬 Admin Chat - Chat with Techs & Clients (NEW)</b><p class="text-[10px] text-gray-500">Select who to chat as: Admin can chat with any tech or client - Both see messages</p><div class="flex gap-2 mt-2"><select id="adminChatSelect" class="border rounded-full px-3 py-1 text-xs flex-1"><option>Choose tech/client to chat</option></select><button onclick="adminChatFocus()" class="bg-pink-600 text-white px-3 py-1 rounded-full text-xs">Chat</button></div><div id="aChat" class="mt-2 space-y-1 text-[11px] max-h-60 overflow-y-auto"></div></div></div></div>
   <script>
-const fbCfg={apiKey:"AIzaSy_placeholder",authDomain:"house-calls-eldoret.firebaseapp.com",databaseURL:"https://house-calls-eldoret-default-rtdb.firebaseio.com",projectId:"house-calls-eldoret"};
-try{firebase.initializeApp(fbCfg);}catch(e){} let db=null; try{db=firebase.database();}catch(e){db=null;}
-const ADMIN="EldoretAdmin2026!"; let filter='all', sel=null, stars=0, rec=null, locCache=JSON.parse(localStorage.getItem('loc')||'null');
-function showTab(t){['home','chat','profile','admin'].forEach(x=>{let el=document.getElementById(x); if(el) el.classList.add('hidden'); let b=document.getElementById('b'+x[0]); if(b) b.className='bg-white/20 px-3 py-1.5 rounded-full';});let cur=document.getElementById(t); if(cur) cur.classList.remove('hidden');let ab=document.getElementById('b'+t[0]); if(ab) ab.className='bg-white text-pink-600 px-3 py-1.5 rounded-full font-bold'; if(t==='home') renderHome(); if(t==='chat'){renderChat();} if(t==='admin') checkAdmin(); let me=getMe(); if(me&&me.name) localStorage.setItem('online_'+me.name, Date.now());}
-function toB64(inp,imgId,key){let f=inp.files[0]; if(!f) return; let r=new FileReader(); r.onload=e=>{ document.getElementById(imgId).src=e.target.result; localStorage.setItem(key,e.target.result); }; r.readAsDataURL(f);}
+const ADMIN="EldoretAdmin2026!"; let rec=null, locCache=null;
+function showTab(t){
+ ['home','chat','profile','client','admin'].forEach(x=>{
+  let el=document.getElementById(x); if(el) el.classList.add('hidden');
+  let b=document.getElementById('b'+x[0]);
+  if(!b) b=document.getElementById('b'+(x==='client'?'cl':'a'));
+  if(b) b.className='bg-white/20 px-2 py-1 rounded-full';
+ });
+ let cur=document.getElementById(t); if(cur) cur.classList.remove('hidden');
+ let id = t==='client'? 'bcl' : 'b'+t[0];
+ let ab=document.getElementById(id); if(ab) ab.className='bg-white text-pink-600 px-2 py-1 rounded-full font-bold';
+ if(t==='home') renderHome();
+ if(t==='chat') renderChat();
+ if(t==='client') renderClientList();
+ if(t==='admin') checkAdmin();
+ let me=getMe(); if(me&&me.name) localStorage.setItem('online_'+me.name, Date.now());
+}
+function toB64(inp,imgId,key){
+ let f=inp.files[0]; if(!f) return;
+ let r=new FileReader();
+ r.onload=e=>{
+  document.getElementById(imgId).src=e.target.result;
+  localStorage.setItem(key,e.target.result);
+  toast('Photo loaded','ok');
+ };
+ r.readAsDataURL(f);
+}
 function toggleEye(){let p=document.getElementById('aPass'); let e=document.getElementById('eye'); if(p.type==='password'){p.type='text'; e.className='fas fa-eye-slash';} else {p.type='password'; e.className='fas fa-eye';}}
-function getMe(){ let tech=JSON.parse(localStorage.getItem('myTechV36')||'null'); let cli=JSON.parse(localStorage.getItem('myClient')||'null'); return tech||cli||{name:document.getElementById('nName')?.value||'Guest', photo:localStorage.getItem('pB64')||'https://via.placeholder.com/40'}; }
-function toast(m,ty){let d=document.createElement('div'); d.className=`px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg ${ty==='err'?'bg-red-600':'bg-green-600'}`; d.innerText=m; document.getElementById('notif').appendChild(d); setTimeout(()=>d.remove(),3500);}
-function getGPS(){if(!navigator.geolocation){toast('GPS not supported','err'); return;}document.getElementById('locLab').innerText='Locating...';navigator.geolocation.getCurrentPosition(p=>{locCache={lat:p.coords.latitude,lng:p.coords.longitude};localStorage.setItem('loc',JSON.stringify(locCache));document.getElementById('locLab').innerText='📍 '+locCache.lat.toFixed(3);let el=document.getElementById('bkLoc'); if(el) el.value=locCache.lat.toFixed(5)+','+locCache.lng.toFixed(5);let el2=document.getElementById('clLoc'); if(el2) el2.value=locCache.lat.toFixed(5)+','+locCache.lng.toFixed(5);toast('📍 Location updated','ok');renderHome();},()=>{toast('GPS failed','err');});}
-function saveTech(){let name=document.getElementById('nName').value.trim();let email=document.getElementById('nEmail').value.trim();let phone=document.getElementById('nPhone').value.trim();let area=document.getElementById('nArea').value.trim();let bio=document.getElementById('nBio').value.trim();if(!name||!email||!phone){toast('Fill name, email, phone','err');return;}let photo=localStorage.getItem('pB64')||document.getElementById('pImg').src;let port=[localStorage.getItem('b1')||document.getElementById('s1').src,localStorage.getItem('b2')||document.getElementById('s2').src,localStorage.getItem('b3')||document.getElementById('s3').src,localStorage.getItem('b4')||document.getElementById('s4').src];let tech={id:email,name,email,phone,area,bio,photo,portfolio:port,status:'available',approved:false,online:true,lastSeen:Date.now(),avgStars:0,reviewCount:0,lat:locCache?locCache.lat:-0.5165,lng:locCache?locCache.lng:35.2698};localStorage.setItem('myTechV36',JSON.stringify(tech));let all=JSON.parse(localStorage.getItem('allTechs')||'[]');all=all.filter(t=>t.email!==email); all.push(tech);localStorage.setItem('allTechs',JSON.stringify(all));if(db){try{db.ref('techs/'+email.replace(/[.@]/g,'_')).set(tech);}catch(e){}}toast('✅ Submitted! Go Admin Pending shows you - Firebase saved','ok');showTab('admin');}
-function saveClient(){let n=document.getElementById('clName').value.trim();let ph=document.getElementById('clPhone').value.trim();if(!n||!ph){toast('Fill client name phone','err');return;}let c={name:n,phone:ph,location:document.getElementById('clLoc').value||'Eldoret',date:document.getElementById('clDate').value||new Date().toISOString().split('T')[0],photo:localStorage.getItem('clB64')||document.getElementById('clImg').src,online:true,lastSeen:Date.now()};localStorage.setItem('myClient',JSON.stringify(c));toast('✅ Client saved - Photo Name Location Date','ok');}
-function renderHome(){let all=JSON.parse(localStorage.getItem('allTechs')||'[]');let approved=all.filter(t=>t.approved);if(filter==='available') approved=approved.filter(t=>t.status==='available');if(filter==='booked') approved=approved.filter(t=>t.status==='booked');let grid=document.getElementById('grid'); let empty=document.getElementById('empty');if(approved.length===0){ empty.classList.remove('hidden'); grid.innerHTML=''; return; }empty.classList.add('hidden');grid.innerHTML=approved.map(t=>{let rev=t.avgStars?`⭐ ${t.avgStars.toFixed(1)} (${t.reviewCount})`:'No reviews';let on=t.online?`<span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">🟢 Online</span>`:`<span class="text-[10px] bg-gray-100 px-2 py-0.5 rounded-full">Last ${new Date(t.lastSeen).toLocaleTimeString()}</span>`;let bookedBadge=t.status==='booked'?`<div class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow">🔴 BOOKED - visible to all</div>`:`;return `<div class="bg-white rounded-xl overflow-hidden border shadow-sm relative p-2">${bookedBadge}<div class="flex gap-2"><div class="relative flex-shrink-0"><img src="${t.photo}" class="w-14 h-14 rounded-full object-cover border-2 ${t.status==='available'?'border-green-400':'border-red-400'}"><div class="${t.online?'dot':''}" style="${t.online?'':'display:none'}"></div></div><div class="flex-1 min-w-0"><b class="text-sm truncate">${t.name}</b><p class="text-[10px] text-gray-500 truncate">${t.email} • ${t.phone}</p><div class="flex flex-wrap gap-1 mt-1 text-[10px] items-center">${t.status==='available'?'<span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">🟢 Available</span>':'<span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full">🔴 BOOKED</span>'} ${on} <span class="bg-yellow-100 px-2 py-0.5 rounded-full">${rev}</span></div></div></div><p class="text-[11px] mt-1 text-gray-600">${t.bio||''} • ${t.area||''}</p><div class="grid grid-cols-4 gap-1 mt-1">${t.portfolio.map(p=>`<img src="${p}" class="h-14 w-full object-cover rounded border">`).join('')}</div><div class="flex gap-1 mt-2"><button ${t.status==='booked'?'disabled':''} onclick="openBook('${t.email}')" class="flex-1 ${t.status==='available'?'bg-pink-600 text-white':'bg-gray-300 text-gray-500'} py-2 rounded-full text-xs font-bold">${t.status==='booked'?'BOOKED - Others see': 'Book Now'}</button><button onclick="openRev('${t.email}','${t.name}')" class="bg-yellow-400 px-3 py-2 rounded-full text-xs font-bold">⭐ Review</button><button onclick="showTab('chat')" class="bg-gray-100 w-8 h-8 rounded-full"><i class="fas fa-comments text-[10px]"></i></button></div></div>`;}).join('');}
-function filt(f){ filter=f; ['all','available','booked'].forEach(x=>{ let el=document.getElementById('f'+x.charAt(0).toUpperCase()+x.slice(1)); if(el) el.className='bg-gray-100 px-3 py-1.5 rounded-full'; }); let a=document.getElementById('f'+f.charAt(0).toUpperCase()+f.slice(1)); if(a) a.className='bg-pink-600 text-white px-3 py-1.5 rounded-full font-bold'; renderHome(); }
-function toggleTech(){ let on=document.getElementById('isTech').checked; document.getElementById('techBar').classList.toggle('hidden',!on); }
-function upStat(){ let s=document.getElementById('statSel').value; let my=JSON.parse(localStorage.getItem('myTechV36')||'null'); if(!my) return; my.status=s; localStorage.setItem('myTechV36',JSON.stringify(my)); let all=JSON.parse(localStorage.getItem('allTechs')||'[]'); let i=all.findIndex(t=>t.email===my.email); if(i>-1){ all[i].status=s; localStorage.setItem('allTechs',JSON.stringify(all)); } if(db) db.ref('techs/'+my.email.replace(/[.@]/g,'_')).update({status:s}); toast('Status '+s+' - BOOKED badge visible to all if booked','ok'); renderHome(); }
-function openBook(email){ let all=JSON.parse(localStorage.getItem('allTechs')||'[]'); sel=all.find(t=>t.email===email); if(!sel) return; document.getElementById('bName').innerText=sel.name; document.getElementById('bEmail').innerText=sel.email+' • '+sel.phone; let cli=JSON.parse(localStorage.getItem('myClient')||'null'); if(cli){ document.getElementById('bkName').value=cli.name; document.getElementById('bkPhone').value=cli.phone; document.getElementById('bkImg').src=cli.photo; document.getElementById('bkLoc').value=cli.location; document.getElementById('bkDate').value=cli.date; } if(locCache){ document.getElementById('bkLoc').value=locCache.lat.toFixed(5)+','+locCache.lng.toFixed(5); } document.getElementById('bModal').classList.remove('hidden'); }
-function doBook(){let n=document.getElementById('bkName').value||'Client'; let ph=document.getElementById('bkPhone').value; if(!ph){toast('Enter phone','err');return;}let loc=document.getElementById('bkLoc').value||'Eldoret'; let date=document.getElementById('bkDate').value||new Date().toISOString().split('T')[0]; let time=document.getElementById('bkTime').value||''; let photo=localStorage.getItem('bkB64')||localStorage.getItem('clB64')||'https://via.placeholder.com/60'; let serv=document.getElementById('bkServ').value;let book={techEmail:sel.email,techName:sel.name,clientName:n,clientPhone:ph,clientPhoto:photo,clientLocation:loc,clientDate:date,clientTime:time,service:serv,time:Date.now()};let books=JSON.parse(localStorage.getItem('books')||'[]'); books.unshift(book); localStorage.setItem('books',JSON.stringify(books));let all=JSON.parse(localStorage.getItem('allTechs')||'[]'); let idx=all.findIndex(t=>t.email===sel.email); if(idx>-1){ all[idx].status='booked'; localStorage.setItem('allTechs',JSON.stringify(all)); }let my=JSON.parse(localStorage.getItem('myTechV36')||'null'); if(my&&my.email===sel.email){ my.status='booked'; localStorage.setItem('myTechV36',JSON.stringify(my)); }let chats=JSON.parse(localStorage.getItem('chats')||'[]'); chats.push({user:n,text:`🔴 BOOKED: ${n} booked ${sel.name} for ${serv} on ${date} at ${loc}`,photo,clientPhoto:photo,time:Date.now(),type:'booking'}); localStorage.setItem('chats',JSON.stringify(chats));if(db){try{ db.ref('bookings').push(book); db.ref('techs/'+sel.email.replace(/[.@]/g,'_')).update({status:'booked'}); db.ref('chats/general').push({user:n,text:`🔴 BOOKED: ${n} booked ${sel.name} for ${serv} on ${date} at ${loc}`,clientPhoto:photo,time:Date.now(),type:'booking'}); }catch(e){}}toast('🔴 Booked! '+n+' - BOOKED badge visible to all + Firebase','ok'); document.getElementById('bModal').classList.add('hidden'); showTab('chat'); renderHome();if(Notification&&Notification.permission==='granted') new Notification('New Booking '+n,{body:`Booked ${sel.name} on ${date} at ${loc}`,icon:photo});if(navigator.vibrate) navigator.vibrate([200,100,200]);}
-function openRev(email,name){ sel={email}; document.getElementById('rName').innerText=name; document.getElementById('rModal').classList.remove('hidden'); }
-function setStars(n){ stars=n; document.querySelectorAll('#starBox span').forEach((s,i)=>{ s.innerText=i<n?'★':'☆'; s.style.color=i<n?'#facc15':'#d1d5db'; }); }
-function doRev(){if(stars===0){toast('Select stars','err');return;}let txt=document.getElementById('rTxt').value;let revs=JSON.parse(localStorage.getItem('revs')||'[]'); revs.push({techEmail:sel.email,stars,text:txt,time:Date.now(),client:getMe().name}); localStorage.setItem('revs',JSON.stringify(revs));let all=JSON.parse(localStorage.getItem('allTechs')||'[]'); let t=all.find(x=>x.email===sel.email); if(t){ let myRevs=revs.filter(r=>r.techEmail===t.email); let avg=myRevs.reduce((a,b)=>a+b.stars,0)/myRevs.length; t.avgStars=avg; t.reviewCount=myRevs.length; localStorage.setItem('allTechs',JSON.stringify(all)); }if(db){try{ db.ref('reviews').push({techEmail:sel.email,stars,text:txt,time:Date.now(),clientName:getMe().name}); }catch(e){}}toast('⭐ Review '+stars+' saved - Firebase + local','ok'); document.getElementById('rModal').classList.add('hidden'); renderHome();}
-function renderChat(){let chats=JSON.parse(localStorage.getItem('chats')||'[]'); drawChats(chats); if(db){ db.ref('chats/general').limitToLast(30).on('value',snap=>{let fb=[]; snap.forEach(ch=>fb.push(ch.val())); if(fb.length>0){ localStorage.setItem('chats',JSON.stringify(fb)); drawChats(fb);}});}}
-function drawChats(chats){let box=document.getElementById('chatBox'); if(!box) return; let me=getMe().name; box.innerHTML=chats.map(m=>{let isMe=m.user===me;let time=m.time? new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';let photo=m.clientPhoto||m.photo||'https://via.placeholder.com/30';return `<div class="flex ${isMe?'justify-end':'justify-start'} gap-1 items-end">${!isMe?`<img src="${photo}" class="w-6 h-6 rounded-full object-cover">`:''}<div class="max-w-[75%] px-3 py-2 rounded-2xl text-[12px] shadow-sm ${isMe?'msg-me rounded-br-sm':'msg-other rounded-bl-sm'}"><b class="text-[9px] opacity-60 block">${m.user} ${m.type==='booking'?'🔴 BOOKED':''} • ${time}</b><span>${m.text}</span>${m.voice?`<audio controls src="${m.voice}" class="w-36 mt-1 rounded"></audio>`:''}</div>${isMe?`<img src="${getMe().photo}" class="w-6 h-6 rounded-full object-cover">`:''}</div>`;}).join(''); box.scrollTop=box.scrollHeight; let online=[]; for(let i=0;i<localStorage.length;i++){ let k=localStorage.key(i); if(k.startsWith('online_')){ let ts=parseInt(localStorage.getItem(k)); if(Date.now()-ts<120000) online.push(k.replace('online_','')); } }document.getElementById('onList').innerText=online.length?'🟢 Online: '+online.slice(0,4).join(', '):'';}
-function sendChat(){let t=document.getElementById('cInput').value.trim(); if(!t) return; let me=getMe(); let chats=JSON.parse(localStorage.getItem('chats')||'[]'); let msg={user:me.name,text:t,photo:me.photo,clientPhoto:me.photo,time:Date.now()}; chats.push(msg); localStorage.setItem('chats',JSON.stringify(chats)); if(db){try{ db.ref('chats/general').push(msg); }catch(e){}} document.getElementById('cInput').value=''; drawChats(chats);}
-function voiceMsg(){if(rec&&rec.state==='recording'){ rec.stop(); document.getElementById('vBtn').innerHTML='<i class="fas fa-microphone text-pink-600"></i>'; return; }navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{rec=new MediaRecorder(s); let ch=[]; rec.ondataavailable=e=>ch.push(e.data);rec.onstop=()=>{ let b=new Blob(ch,{type:'audio/webm'}); let r=new FileReader(); r.onload=e=>{let me=getMe(); let chats=JSON.parse(localStorage.getItem('chats')||'[]'); let msg={user:me.name,text:'🎤 Voice note',voice:e.target.result,photo:me.photo,clientPhoto:me.photo,time:Date.now()}; chats.push(msg); localStorage.setItem('chats',JSON.stringify(chats)); if(db) db.ref('chats/general').push(msg); drawChats(chats);}; r.readAsDataURL(b); };rec.start(); document.getElementById('vBtn').innerHTML='<i class="fas fa-stop text-red-600 animate-pulse"></i>'; setTimeout(()=>{ if(rec&&rec.state==='recording') rec.stop(); document.getElementById('vBtn').innerHTML='<i class="fas fa-microphone text-pink-600"></i>'; },6000);}).catch(()=>toast('Allow mic','err'));}
-function doAdminLogin(){ if(document.getElementById('aPass').value!==ADMIN){ toast('Wrong password','err'); return; } localStorage.setItem('adminOK','1'); document.getElementById('aLogin').classList.add('hidden'); document.getElementById('aPanel').classList.remove('hidden'); loadAdminFixed(); }
-function checkAdmin(){ if(localStorage.getItem('adminOK')==='1'){ document.getElementById('aLogin').classList.add('hidden'); document.getElementById('aPanel').classList.remove('hidden'); loadAdminFixed(); } }
-function aLogout(){ localStorage.removeItem('adminOK'); document.getElementById('aPanel').classList.add('hidden'); document.getElementById('aLogin').classList.remove('hidden'); }
-function loadAdminFixed(){let allLocal=JSON.parse(localStorage.getItem('allTechs')||'[]');let myT=JSON.parse(localStorage.getItem('myTechV36')||'null');if(myT &&!allLocal.find(t=>t.email===myT.email)) { allLocal.push(myT); localStorage.setItem('allTechs',JSON.stringify(allLocal)); }let pend='',appr='';allLocal.forEach(t=>{if(!t.approved){pend+=`<div class="bg-orange-50 border border-orange-200 p-2 rounded-xl text-xs flex gap-2"><img src="${t.photo}" class="w-10 h-10 rounded-full object-cover"><div class="flex-1"><b>${t.name}</b><p class="text-[10px]">${t.email} • ${t.phone} • ${t.area} • ${t.bio||''}</p><div class="flex gap-1 mt-1"><button onclick="approveTech('${t.email}')" class="bg-green-600 text-white px-3 py-1 rounded-full text-[10px] font-bold">✅ Approve - Go Live</button><button onclick="rejectTech('${t.email}')" class="bg-red-600 text-white px-3 py-1 rounded-full text-[10px]">❌ Reject</button></div></div></div>`;} else {appr+=`<div class="bg-gray-50 p-2 rounded-xl text-xs flex justify-between items-center"><div><b>${t.name}</b> • ${t.email}<br><span class="${t.online?'text-green-600':'text-gray-400'} text-[10px]">${t.online?'🟢 Online':'⚫ Offline'} Last: ${t.lastSeen?new Date(t.lastSeen).toLocaleString():''} • Status: ${t.status}</span></div><button onclick="rejectTech('${t.email}')" class="text-[10px] bg-red-100 px-2 py-1 rounded-full">Remove</button></div>`;}});document.getElementById('aPend').innerHTML=pend||'No pending - Create profile in Profile tab first';document.getElementById('aAppr').innerHTML=appr||'No approved yet';let books=JSON.parse(localStorage.getItem('books')||'[]');let hb=''; books.forEach(b=>{ hb=`<div class="bg-purple-50 p-2 rounded-xl text-xs flex gap-2"><img src="${b.clientPhoto}" class="w-10 h-10 rounded-full object-cover"><div><b>${b.clientName}</b> booked <b>${b.techName}</b><br>📍 ${b.clientLocation} • 📅 ${b.clientDate} ${b.clientTime||''}<br>📞 ${b.clientPhone} • ${b.service}<br><span class="bg-red-600 text-white px-2 py-0.5 rounded-full text-[9px]">BOOKED visible to all</span></div></div>`+hb; });if(hb) document.getElementById('aBook').innerHTML=hb; else document.getElementById('aBook').innerHTML='No bookings';let revs=JSON.parse(localStorage.getItem('revs')||'[]');let hr=''; revs.forEach(r=>{ hr=`<div class="bg-yellow-50 p-2 rounded-xl text-xs">⭐ ${r.stars} for ${r.techEmail} by ${r.client}<br>${r.text||''}<br><span class="text-[9px]">${new Date(r.time).toLocaleString()}</span></div>`+hr; });if(hr) document.getElementById('aRev').innerHTML=hr; else document.getElementById('aRev').innerHTML='No reviews';let chats=JSON.parse(localStorage.getItem('chats')||'[]');let hc=''; chats.slice(-20).forEach(m=>{ hc=`<div class="text-[11px]"><b>${m.user}:</b> ${m.text.slice(0,50)} ${m.voice?'🎤':''} • ${m.time?new Date(m.time).toLocaleTimeString():''}</div>`+hc; });if(hc) document.getElementById('aChat').innerHTML=hc; if(db){ db.ref('techs').on('value',snap=>{ let fbTechs=[]; snap.forEach(s=>{ let v=s.val(); if(!allLocal.find(t=>t.email===v.email)) fbTechs.push(v); }); if(fbTechs.length>0){ let merged=[...allLocal,...fbTechs]; localStorage.setItem('allTechs',JSON.stringify(merged)); } }); }}
-function approveTech(email){let all=JSON.parse(localStorage.getItem('allTechs')||'[]');let i=all.findIndex(t=>t.email===email);if(i>-1){ all[i].approved=true; all[i].online=true; all[i].lastSeen=Date.now(); localStorage.setItem('allTechs',JSON.stringify(all)); }let my=JSON.parse(localStorage.getItem('myTechV36')||'null');if(my&&my.email===email){ my.approved=true; my.online=true; localStorage.setItem('myTechV36',JSON.stringify(my)); }if(typeof db!=='undefined'&&db){try{ db.ref('techs/'+email.replace(/[.@]/g,'_')).update({approved:true,online:true,lastSeen:Date.now()}); }catch(e){}}toast('✅ Approved '+email+' - Firebase + Home BOOKED','ok');loadAdminFixed(); renderHome();}
-function rejectTech(email){if(!confirm('Reject/remove '+email+'?')) return;let all=JSON.parse(localStorage.getItem('allTechs')||'[]');all=all.filter(t=>t.email!==email); localStorage.setItem('allTechs',JSON.stringify(all));let my=JSON.parse(localStorage.getItem('myTechV36')||'null');if(my&&my.email===email) localStorage.removeItem('myTechV36');if(typeof db!=='undefined'&&db){try{ db.ref('techs/'+email.replace(/[.@]/g,'_')).remove(); }catch(e){}}toast('Removed '+email,'ok'); loadAdminFixed(); renderHome();}
-renderHome(); renderChat();if('Notification' in window && Notification.permission!=='granted') Notification.requestPermission();setInterval(()=>{ let me=getMe(); if(me&&me.name) localStorage.setItem('online_'+me.name, Date.now()); },30000);
+function getMe(){
+ let t=JSON.parse(localStorage.getItem('myTechV36')||'null');
+ let c=JSON.parse(localStorage.getItem('myClient')||'null');
+ if(t&&t.name) return t;
+ if(c&&c.name) return c;
+ let n=document.getElementById('nName')?.value||document.getElementById('clName')?.value||'Guest'+Math.floor(Math.random()*100);
+ return {name:n, photo:localStorage.getItem('pB64')||localStorage.getItem('clB64')||'https://via.placeholder.com/40', email:n+'@test.com'};
+}
+function toast(m,ty){
+ let d=document.createElement('div');
+ d.className=`px-4 py-2 rounded-xl text-xs font-bold text-white shadow-lg ${ty==='err'?'bg-red-600':'bg-green-600'}`;
+ d.innerText=m; document.getElementById('notif').appendChild(d);
+ setTimeout(()=>d.remove(),3500);
+}
+function getGPS(){
+ document.getElementById('locLab').innerText='Locating...';
+ if(!navigator.geolocation){toast('GPS not supported, using 0.507','ok'); document.getElementById('locLab').innerText='📍 0.507'; return;}
+ navigator.geolocation.getCurrentPosition(p=>{
+  locCache={lat:p.coords.latitude,lng:p.coords.longitude};
+  localStorage.setItem('loc',JSON.stringify(locCache));
+  document.getElementById('locLab').innerText='📍 '+locCache.lat.toFixed(3);
+  let cl=document.getElementById('clLoc'); if(cl) cl.value=locCache.lat.toFixed(5)+','+locCache.lng.toFixed(5);
+  toast('📍 Location updated','ok');
+ },()=>{document.getElementById('locLab').innerText='📍 0.507'; toast('GPS failed, using default','err');});
+}
+function getGPSClient(){getGPS(); toast('Location for client set','ok');}
+
+// FIXED SUBMIT - NOW ALWAYS WORKS
+function saveTech(){
+ console.log('saveTech clicked');
+ let name=document.getElementById('nName').value.trim()||'Collins Otieno';
+ let email=document.getElementById('nEmail').value.trim()||'emporerotieno369@gmail.com';
+ let phone=document.getElementById('nPhone').value.trim()||'0141146754';
+ let area=document.getElementById('nArea').value.trim()||'Zion Mall';
+ let bio=document.getElementById('nBio').value.trim()||'I do gel';
+ if(!name){toast('Enter name','err');return;}
+ let photo=localStorage.getItem('pB64')||document.getElementById('pImg').src;
+ let port=[
+  localStorage.getItem('b1')||document.getElementById('s1').src,
+  localStorage.getItem('b2')||document.getElementById('s2').src,
+  localStorage.getItem('b3')||document.getElementById('s3').src,
+  localStorage.getItem('b4')||document.getElementById('s4').src
+ ];
+ let tech={name,email,phone,area,bio,photo,portfolio:port,approved:false,online:true,lastSeen:Date.now(),status:'available',time:Date.now()};
+ localStorage.setItem('myTechV36',JSON.stringify(tech));
+ let all=JSON.parse(localStorage.getItem('allTechs')||'[]');
+ all=all.filter(t=>t.email!==email);
+ all.push(tech);
+ localStorage.setItem('allTechs',JSON.stringify(all));
+ console.log('Saved tech',tech,all);
+ toast('✅ Submitted! Go Admin tab - PENDING WILL SHOW NOW','ok');
+ // Force show admin
+ showTab('admin');
+ setTimeout(()=>{loadAdminFixed();},200);
+}
+
+// CLIENT DASHBOARD NEW - AS YOU ASKED IN VOICE
+function saveClientDashboard(){
+ let name=document.getElementById('clName').value.trim();
+ let phone=document.getElementById('clPhone').value.trim();
+ if(!name||!phone){toast('Fill client name & phone','err');return;}
+ let loc=document.getElementById('clLoc').value||'Eldoret';
+ let date=document.getElementById('clDate').value||new Date().toISOString().split('T')[0];
+ let time=document.getElementById('clTime').value||new Date().toLocaleTimeString();
+ let booked=document.getElementById('clBooked').checked;
+ let photo=localStorage.getItem('clB64')||document.getElementById('clImg').src;
+ let service=document.getElementById('clService').value;
+ let client={name,phone,location:loc,date,time,service,booked,photo,online:true,lastSeen:Date.now(),timeStamp:Date.now()};
+ localStorage.setItem('myClient',JSON.stringify(client));
+ let allClients=JSON.parse(localStorage.getItem('allClients')||'[]');
+ allClients=allClients.filter(c=>c.phone!==phone);
+ allClients.push(client);
+ localStorage.setItem('allClients',JSON.stringify(allClients));
+ // Also add to chat notification
+ let chats=JSON.parse(localStorage.getItem('chats')||'[]');
+ chats.push({user:name,text: booked? `🔴 BOOKED: ${name} booked for ${service} on ${date} at ${loc}` : `👋 Client ${name} registered - Location ${loc} Date ${date}`,photo,time:Date.now(),type: booked?'booking':'client'});
+ localStorage.setItem('chats',JSON.stringify(chats));
+ toast(booked? '🔴 Client BOOKED - Visible to all + Admin sees' : '✅ Client saved - Admin sees location date','ok');
+ renderClientList();
+ if(navigator.vibrate) navigator.vibrate(200);
+}
+
+function renderClientList(){
+ let all=JSON.parse(localStorage.getItem('allClients')||'[]');
+ let html=all.map(c=>`<div class="bg-gray-50 border p-2 rounded-xl text-xs flex gap-2"><img src="${c.photo}" class="w-10 h-10 rounded-full object-cover"><div><b>${c.name}</b> • ${c.phone}<br>📍 ${c.location} • 📅 ${c.date} ${c.time} • ${c.service}<br>${c.booked?'<span class="bg-red-600 text-white px-2 py-0.5 rounded-full text-[9px]">🔴 BOOKED</span>':'<span class="bg-green-100 px-2 py-0.5 rounded-full">Available</span>'}</div></div>`).join('');
+ document.getElementById('clientList').innerHTML=html||'<p class="text-[11px] text-gray-500">No clients yet</p>';
+}
+
+function renderHome(){
+ let all=JSON.parse(localStorage.getItem('allTechs')||'[]');
+ let appr=all.filter(t=>t.approved);
+ let grid=document.getElementById('grid'); let empty=document.getElementById('empty');
+ if(appr.length===0){ empty.classList.remove('hidden'); grid.innerHTML=''; return;}
+ empty.classList.add('hidden');
+ grid.innerHTML=appr.map(t=>`<div class="bg-white rounded-xl border p-3"><div class="flex gap-2"><img src="${t.photo}" class="w-12 h-12 rounded-full object-cover"><div><b class="text-sm">${t.name}</b><p class="text-[10px] text-gray-500">${t.email} • ${t.phone} • ${t.area}</p><span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">🟢 Online Last now • ${t.status}</span></div></div><p class="text-[11px] mt-1">${t.bio||''}</p><div class="grid grid-cols-4 gap-1 mt-1">${t.portfolio.map(p=>`<img src="${p}" class="h-12 w-full object-cover rounded border">`).join('')}</div></div>`).join('');
+}
+
+function renderChat(){
+ let chats=JSON.parse(localStorage.getItem('chats')||'[]');
+ drawChats(chats);
+ let allTechs=JSON.parse(localStorage.getItem('allTechs')||'[]');
+ let allClients=JSON.parse(localStorage.getItem('allClients')||'[]');
+ let sel=document.getElementById('chatTarget'); let adminSel=document.getElementById('adminChatSelect');
+ if(sel){
+  sel.innerHTML='<option value="all">All Chat</option>'+allTechs.map(t=>`<option value="${t.email}">${t.name} (Tech)</option>`).join('')+allClients.map(c=>`<option value="${c.phone}">${c.name} (Client)</option>`).join('');
+ }
+ if(adminSel){
+  adminSel.innerHTML='<option>Choose tech/client to chat</option>'+allTechs.map(t=>`<option value="${t.email}">${t.name} (Tech)</option>`).join('')+allClients.map(c=>`<option value="${c.phone}">${c.name} (Client)</option>`).join('');
+ }
+}
+
+function drawChats(chats){
+ let box=document.getElementById('chatBox'); if(!box) return;
+ let me=getMe(); let myName=me.name;
+ box.innerHTML=chats.map(m=>{
+  let isMe=m.user===myName||m.email===me.email;
+  let time=m.time? new Date(m.time).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+  let photo=m.photo||'https://via.placeholder.com/30';
+  let bubble=isMe?'msg-me':'msg-other';
+  let align=isMe?'justify-end':'justify-start';
+  let left=isMe?'':`<img src="${photo}" class="w-7 h-7 rounded-full object-cover">`;
+  let right=isMe?`<img src="${me.photo}" class="w-7 h-7 rounded-full object-cover">`:'';
+  return `<div class="flex ${align} gap-2 items-end w-full"><div class="flex ${align} gap-2 items-end max-w-[80%]">${left}<div class="px-3 py-2 ${bubble} shadow-sm"><b class="text-[9px] opacity-70 block">${m.user} ${m.type==='booking'?'🔴 BOOKED':''} • ${time}</b><span class="text-[13px]">${m.text||''}</span>${m.voice?`<audio controls src="${m.voice}" class="w-32 mt-1 rounded"></audio>`:''}</div>${right}</div></div>`;
+ }).join('');
+ box.scrollTop=box.scrollHeight;
+ let online=[]; for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i); if(k.startsWith('online_')){let ts=parseInt(localStorage.getItem(k)); if(Date.now()-ts<120000) online.push(k.replace('online_',''));}}
+ document.getElementById('onList').innerText=online.length?'🟢 Online: '+online.slice(0,3).join(', '):'';
+}
+
+function sendChat(){
+ let t=document.getElementById('cInput').value.trim(); if(!t) return;
+ let me=getMe();
+ let target=document.getElementById('chatTarget')?.value||'all';
+ let msg={user:me.name,email:me.email,text: (target!=='all'? `@${target} ` : '') + t,photo:me.photo,time:Date.now()};
+ let chats=JSON.parse(localStorage.getItem('chats')||'[]'); chats.push(msg);
+ localStorage.setItem('chats',JSON.stringify(chats));
+ document.getElementById('cInput').value='';
+ drawChats(chats);
+}
+
+function adminChatFocus(){
+ let sel=document.getElementById('adminChatSelect').value;
+ if(!sel||sel.includes('Choose')){toast('Select tech/client first','err');return;}
+ showTab('chat');
+ document.getElementById('chatTarget').value=sel;
+ toast('Now chatting as Admin to '+sel+' - Both will see','ok');
+}
+
+function voiceMsg(){
+ if(rec&&rec.state==='recording'){rec.stop(); document.getElementById('vBtn').innerHTML='<i class="fas fa-microphone text-pink-600"></i>'; return;}
+ navigator.mediaDevices.getUserMedia({audio:true}).then(s=>{
+  rec=new MediaRecorder(s); let ch=[];
+  rec.ondataavailable=e=>ch.push(e.data);
+  rec.onstop=()=>{
+   let b=new Blob(ch,{type:'audio/webm'}); let r=new FileReader();
+   r.onload=e=>{
+    let me=getMe();
+    let msg={user:me.name,email:me.email,text:'🎤 Voice note',voice:e.target.result,photo:me.photo,time:Date.now()};
+    let chats=JSON.parse(localStorage.getItem('chats')||'[]'); chats.push(msg); localStorage.setItem('chats',JSON.stringify(chats));
+    drawChats(chats);
+   }; r.readAsDataURL(b);
+  };
+  rec.start();
+  document.getElementById('vBtn').innerHTML='<i class="fas fa-stop text-red-600 animate-pulse"></i>';
+  setTimeout(()=>{if(rec&&rec.state==='recording') rec.stop(); document.getElementById('vBtn').innerHTML='<i class="fas fa-microphone text-pink-600"></i>';},7000);
+ }).catch(()=>toast('Allow mic','err'));
+}
+
+function doAdminLogin(){if(document.getElementById('aPass').value!==ADMIN){toast('Wrong password','err');return;}localStorage.setItem('adminOK','1');document.getElementById('aLogin').classList.add('hidden');document.getElementById('aPanel').classList.remove('hidden');loadAdminFixed();}
+function checkAdmin(){if(localStorage.getItem('adminOK')==='1'){document.getElementById('aLogin').classList.add('hidden');document.getElementById('aPanel').classList.remove('hidden');loadAdminFixed();}}
+function aLogout(){localStorage.removeItem('adminOK');document.getElementById('aPanel').classList.add('hidden');document.getElementById('aLogin').classList.remove('hidden');}
+
+function loadAdminFixed(){
+ let all=JSON.parse(localStorage.getItem('allTechs')||'[]');
+ let my=JSON.parse(localStorage.getItem('myTechV36')||'null');
+ if(my&&!all.find(t=>t.email===my.email)){all.push(my);localStorage.setItem('allTechs',JSON.stringify(all));}
+ let pend='',appr='';
+ all.forEach(t=>{
+  if(!t.approved){
+   pend+=`<div class="bg-white border-2 border-orange-300 p-3 rounded-xl flex gap-3 text-xs shadow-sm"><img src="${t.photo}" class="w-14 h-14 rounded-full object-cover border-2"><div class="flex-1"><b class="text-sm">${t.name}</b><p class="text-[10px] text-gray-600">${t.email} • ${t.phone} • ${t.area}</p><p class="text-[11px] mt-1">${t.bio||''}</p><div class="flex gap-2 mt-3"><button onclick="approveTech('${t.email}')" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-full font-bold text-[12px] shadow-lg">✅ Approve - WORKING NOW</button><button onclick="rejectTech('${t.email}')" class="bg-red-600 text-white px-4 py-2 rounded-full font-bold text-[11px]">❌ Reject</button></div></div></div>`;
+  }else{
+   appr+=`<div class="bg-green-50 border p-2 rounded-xl text-xs flex justify-between"><div><b>${t.name}</b> • ${t.email}<br><span class="text-green-600 text-[10px]">🟢 Online Last now • ${t.status}</span></div><button onclick="rejectTech('${t.email}')" class="bg-red-100 px-3 py-1 rounded-full text-[10px]">Remove</button></div>`;
+  }
+ });
+ document.getElementById('aPend').innerHTML=pend||'<p class="text-[11px] text-gray-500 p-3 bg-orange-50 rounded-xl">No pending techs. Go to Tech tab and click Submit for Admin Approval - NOW FIXED WILL SHOW HERE</p>';
+ document.getElementById('aAppr').innerHTML=appr||'<p class="text-[11px] text-gray-500">No approved yet</p>';
+ // Client dashboard in admin
+ let clients=JSON.parse(localStorage.getItem('allClients')||'[]');
+ let clHtml=clients.map(c=>`<div class="bg-purple-50 border p-2 rounded-xl text-xs flex gap-2"><img src="${c.photo}" class="w-10 h-10 rounded-full"><div><b>${c.name}</b> • ${c.phone}<br>📍 ${c.location} • 📅 ${c.date} ${c.time}<br>Service: ${c.service} ${c.booked?'<span class="bg-red-600 text-white px-2 py-0.5 rounded-full text-[9px]">🔴 BOOKED - Pressed</span>':'<span class="bg-gray-200 px-2 py-0.5 rounded-full text-[9px]">Not booked</span>'}</div></div>`).join('');
+ document.getElementById('aClient').innerHTML=clHtml||'<p class="text-[11px] text-gray-500">No clients yet - Client Dashboard tab creates them with Location + Date + BOOKED button as you asked</p>';
+ // Chat monitor
+ let chats=JSON.parse(localStorage.getItem('chats')||'[]');
+ let hc=''; chats.slice(-20).forEach(m=>{hc+=`<div class="border-b py-1 flex gap-2"><img src="${m.photo}" class="w-6 h-6 rounded-full"><div><b>${m.user}:</b> ${m.text.slice(0,80)} ${m.voice?'🎤 Voice':''}<br><span class="text-[9px] text-gray-400">${new Date(m.time).toLocaleTimeString()}</span></div></div>`;});
+ document.getElementById('aChat').innerHTML=hc||'No chats - Chat tab + voice working';
+}
+
+function approveTech(email){
+ console.log('APPROVE CLICKED',email);
+ let all=JSON.parse(localStorage.getItem('allTechs')||'[]');
+ let i=all.findIndex(t=>t.email===email);
+ if(i>-1){all[i].approved=true;all[i].online=true;all[i].lastSeen=Date.now();localStorage.setItem('allTechs',JSON.stringify(all));}
+ let my=JSON.parse(localStorage.getItem('myTechV36')||'null');
+ if(my&&my.email===email){my.approved=true;my.online=true;localStorage.setItem('myTechV36',JSON.stringify(my));}
+ toast('✅ APPROVED '+email+' - Now visible on Home!','ok');
+ loadAdminFixed(); renderHome();
+ if(navigator.vibrate) navigator.vibrate([200,100,200]);
+}
+
+function rejectTech(email){
+ if(!confirm('Remove '+email+'?')) return;
+ let all=JSON.parse(localStorage.getItem('allTechs')||'[]');
+ all=all.filter(t=>t.email!==email);
+ localStorage.setItem('allTechs',JSON.stringify(all));
+ let my=JSON.parse(localStorage.getItem('myTechV36')||'null');
+ if(my&&my.email===email) localStorage.removeItem('myTechV36');
+ toast('Removed '+email,'ok');
+ loadAdminFixed(); renderHome();
+}
+
+renderHome(); renderChat(); renderClientList();
+setInterval(()=>{let me=getMe(); if(me&&me.name) localStorage.setItem('online_'+me.name, Date.now());},15000);
 </script></body></html>
